@@ -1,0 +1,34 @@
+{
+  "name": "express-blog-platform-api",
+  "version": "1.0.0",
+  "description": "A feature-complete backend API for a modern blogging platform. This Express.js application handles user authentication, CRUD operations for blog posts and comments, and serves as the foundation for a client-side blog application.",
+  "homepage": "https://github.com/dmelnikov-tech/express-blog-platform-api#readme",
+  "bugs": {
+    "url": "https://github.com/dmelnikov-tech/express-blog-platform-api/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dmelnikov-tech/express-blog-platform-api.git"
+  },
+  "license": "MIT",
+  "author": "dmelnikov-tech",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --ext ts --exec tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.10.1",
+    "nodemon": "^3.1.11",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
