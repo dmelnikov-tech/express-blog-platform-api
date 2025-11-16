@@ -37,4 +37,11 @@ export const blogsRepository = {
     const result: DeleteResult = await collection.deleteOne({ id });
     return result.deletedCount > 0;
   },
+
+  //метод используется только при тестировании в testing.routes
+  async deleteAll(): Promise<boolean> {
+    const collection = getCollection();
+    const result: DeleteResult = await collection.deleteMany({});
+    return result.deletedCount > 0;
+  },
 };
