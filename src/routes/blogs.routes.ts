@@ -2,15 +2,25 @@ import { Router, Request, Response } from "express";
 import { blogsService } from "../services/blogs.service.js";
 import { HTTP_STATUSES } from "../constants/http-statuses.js";
 import type { BlogResponseDto } from "../types/domain/blog.types.js";
+import type {
+  PaginatedSortedResponse,
+  PaginationSortParams,
+} from "../types/domain/pagination.types.js";
 import { basicAuthMiddleware } from "../middlewares/basic-auth.middleware.js";
 import { blogValidationMiddleware } from "../middlewares/validation.middleware.js";
+import { getPaginationSortParams } from "../utils/pagination-sort.utils.js";
 
 const router = Router();
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const blogs: BlogResponseDto[] = await blogsService.getAllBlogs();
-    res.status(HTTP_STATUSES.OK).send(blogs);
+    const paginationSortParams: PaginationSortParams = getPaginationSortParams(
+      req.query,
+      "blogs"
+    );
+    const result: PaginatedSortedResponse<BlogResponseDto> =
+      await blogsService.getBlogs(paginationSortParams);
+    res.status(HTTP_STATUSES.OK).send(result);
   } catch (error) {
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }

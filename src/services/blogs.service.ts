@@ -6,12 +6,28 @@ import type {
   UpdateBlogDto,
 } from "../types/domain/blog.types.js";
 import type { BlogDocument } from "../types/infrastructure/blog.document.types.js";
+import type {
+  PaginationSortParams,
+  PaginatedSortedResponse,
+} from "../types/domain/pagination.types.js";
 import { blogsRepository } from "../repositories/blogs.repository.js";
 
 export const blogsService = {
-  async getAllBlogs(): Promise<BlogResponseDto[]> {
-    const blogs: BlogDocument[] = await blogsRepository.find();
-    return this._mapBlogsToResponseDto(blogs);
+  async getBlogs(
+    params: PaginationSortParams
+  ): Promise<PaginatedSortedResponse<BlogResponseDto>> {
+    const { items, totalCount } = await blogsRepository.find(params);
+    const blogs = this._mapBlogsToResponseDto(items);
+
+    const pagesCount = Math.ceil(totalCount / params.pageSize);
+
+    return {
+      pagesCount,
+      page: params.pageNumber,
+      pageSize: params.pageSize,
+      totalCount,
+      items: blogs,
+    };
   },
 
   async getBlogById(id: string): Promise<BlogResponseDto | null> {

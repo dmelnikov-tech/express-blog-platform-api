@@ -6,14 +6,30 @@ import type {
   UpdatePostDto,
 } from "../types/domain/post.types.js";
 import type { PostDocument } from "../types/infrastructure/post.document.types.js";
+import type {
+  PaginationSortParams,
+  PaginatedSortedResponse,
+} from "../types/domain/pagination.types.js";
 import { postsRepository } from "../repositories/posts.repository.js";
 import { blogsService } from "./blogs.service.js";
 import { ERROR_MESSAGES } from "../constants/error-messages.js";
 
 export const postsService = {
-  async getAllPosts(): Promise<PostResponseDto[]> {
-    const posts: PostDocument[] = await postsRepository.find();
-    return this._mapPostsToResponseDto(posts);
+  async getPosts(
+    params: PaginationSortParams
+  ): Promise<PaginatedSortedResponse<PostResponseDto>> {
+    const { items, totalCount } = await postsRepository.find(params);
+    const posts = this._mapPostsToResponseDto(items);
+
+    const pagesCount = Math.ceil(totalCount / params.pageSize);
+
+    return {
+      pagesCount,
+      page: params.pageNumber,
+      pageSize: params.pageSize,
+      totalCount,
+      items: posts,
+    };
   },
 
   async getPostById(id: string): Promise<PostResponseDto | null> {

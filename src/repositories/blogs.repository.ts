@@ -1,6 +1,7 @@
 import { DeleteResult } from "mongodb";
 import type { Blog, UpdateBlogDto } from "../types/domain/blog.types.js";
 import type { BlogDocument } from "../types/infrastructure/blog.document.types.js";
+import type { PaginationSortParams } from "../types/domain/pagination.types.js";
 import { getDatabase } from "../db/mongodb.js";
 import { COLLECTIONS } from "../db/collections.js";
 
@@ -8,9 +9,25 @@ const getCollection = () =>
   getDatabase().collection<BlogDocument>(COLLECTIONS.BLOGS);
 
 export const blogsRepository = {
-  async find(): Promise<BlogDocument[]> {
+  async find(params: PaginationSortParams): Promise<{
+    items: BlogDocument[];
+    totalCount: number;
+  }> {
     const collection = getCollection();
-    return await collection.find({}).toArray();
+
+    const skip = (params.pageNumber - 1) * params.pageSize;
+
+    const [items, totalCount] = await Promise.all([
+      collection
+        .find({})
+        .sort({ [params.sortBy]: params.sortDirection })
+        .skip(skip)
+        .limit(params.pageSize)
+        .toArray(),
+      collection.countDocuments({}),
+    ]);
+
+    return { items, totalCount };
   },
 
   async findById(id: string): Promise<BlogDocument | null> {
@@ -26,10 +43,7 @@ export const blogsRepository = {
 
   async update(id: string, data: UpdateBlogDto): Promise<BlogDocument | null> {
     const collection = getCollection();
-    return await collection.findOneAndUpdate(
-      { id },
-      { $set: data }
-    );
+    return await collection.findOneAndUpdate({ id }, { $set: data });
   },
 
   async delete(id: string): Promise<boolean> {

@@ -5,13 +5,15 @@ import { ERROR_MESSAGES } from "../constants/error-messages.js";
 import type { PostResponseDto } from "../types/domain/post.types.js";
 import { basicAuthMiddleware } from "../middlewares/basic-auth.middleware.js";
 import { postValidationMiddleware } from "../middlewares/validation.middleware.js";
+import { getPaginationSortParams } from "../utils/pagination-sort.utils.js";
 
 const router = Router();
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const posts: PostResponseDto[] = await postsService.getAllPosts();
-    res.status(HTTP_STATUSES.OK).send(posts);
+    const paginationParams = getPaginationSortParams(req.query, "posts");
+    const result = await postsService.getPosts(paginationParams);
+    res.status(HTTP_STATUSES.OK).send(result);
   } catch (error) {
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
