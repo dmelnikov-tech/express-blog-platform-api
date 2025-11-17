@@ -1,6 +1,7 @@
-import { DeleteResult } from "mongodb";
+import { DeleteResult, SortDirection } from "mongodb";
 import type { Blog, UpdateBlogDto } from "../types/domain/blog.types.js";
 import type { BlogDocument } from "../types/infrastructure/blog.document.types.js";
+import type { BlogFilter } from "../types/infrastructure/blog-filter.types.js";
 import type { PaginationSortParams } from "../types/domain/pagination.types.js";
 import { getDatabase } from "../db/mongodb.js";
 import { COLLECTIONS } from "../db/collections.js";
@@ -15,16 +16,22 @@ export const blogsRepository = {
   }> {
     const collection = getCollection();
 
+    const filter: BlogFilter = params.searchNameTerm
+      ? { name: { $regex: params.searchNameTerm, $options: "i" } }
+      : {};
+
+    const sortDirection: SortDirection =
+      params.sortDirection === "asc" ? 1 : -1;
     const skip = (params.pageNumber - 1) * params.pageSize;
 
     const [items, totalCount] = await Promise.all([
       collection
-        .find({})
-        .sort({ [params.sortBy]: params.sortDirection })
+        .find(filter)
+        .sort({ [params.sortBy]: sortDirection })
         .skip(skip)
         .limit(params.pageSize)
         .toArray(),
-      collection.countDocuments({}),
+      collection.countDocuments(filter),
     ]);
 
     return { items, totalCount };

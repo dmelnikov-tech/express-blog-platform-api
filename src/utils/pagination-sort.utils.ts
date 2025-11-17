@@ -25,6 +25,7 @@ export function getPaginationSortParams(
   const sortBy = typeof query.sortBy === "string" ? query.sortBy : undefined;
   const sortDirection =
     typeof query.sortDirection === "string" ? query.sortDirection : undefined;
+
   const pageNumber =
     typeof query.pageNumber === "string"
       ? parseInt(query.pageNumber, 10)
@@ -34,15 +35,21 @@ export function getPaginationSortParams(
       ? parseInt(query.pageSize, 10)
       : undefined;
 
+  const searchNameTerm =
+    typeof query.searchNameTerm === "string" ? query.searchNameTerm : undefined;
+
   const validSortFields =
     entityType === "blogs" ? BLOG_SORT_FIELDS : POST_SORT_FIELDS;
   const validSortBy =
     sortBy && validSortFields.includes(sortBy) ? sortBy : "createdAt";
 
-  return {
+  const result: PaginationSortParams = {
     sortBy: validSortBy,
-    sortDirection: sortDirection === "asc" ? 1 : -1,
+    sortDirection: sortDirection === "asc" ? "asc" : "desc",
     pageNumber: pageNumber && pageNumber > 0 ? pageNumber : 1,
     pageSize: pageSize && pageSize > 0 ? pageSize : 10,
+    searchNameTerm: searchNameTerm || undefined,
   };
+
+  return result;
 }

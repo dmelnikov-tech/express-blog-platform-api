@@ -1,4 +1,4 @@
-import { DeleteResult } from "mongodb";
+import { DeleteResult, SortDirection } from "mongodb";
 import type { Post, UpdatePostDto } from "../types/domain/post.types.js";
 import type { PostDocument } from "../types/infrastructure/post.document.types.js";
 import type { PaginationSortParams } from "../types/domain/pagination.types.js";
@@ -15,12 +15,14 @@ export const postsRepository = {
   }> {
     const collection = getCollection();
 
+    const sortDirection: SortDirection =
+      params.sortDirection === "asc" ? 1 : -1;
     const skip = (params.pageNumber - 1) * params.pageSize;
 
     const [items, totalCount] = await Promise.all([
       collection
         .find({})
-        .sort({ [params.sortBy]: params.sortDirection })
+        .sort({ [params.sortBy]: sortDirection })
         .skip(skip)
         .limit(params.pageSize)
         .toArray(),
