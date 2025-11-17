@@ -1,6 +1,7 @@
 import express from "express";
 import "dotenv/config";
 import blogsRoutes from "./routes/blogs.routes.js";
+import postsRoutes from "./routes/posts.routes.js";
 import testingRoutes from "./routes/testing.routes.js";
 import { connectToDatabase, closeDatabaseConnection } from "./db/mongodb.js";
 
@@ -9,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use("/blogs", blogsRoutes);
+app.use("/posts", postsRoutes);
 app.use("/testing", testingRoutes);
 
 async function startServer() {
