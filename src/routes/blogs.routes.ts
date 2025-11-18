@@ -9,6 +9,7 @@ import type {
   PaginatedSortedResponse,
   PaginationSortParams,
   PaginationSortQuery,
+  BlogPaginationSortParams,
 } from '../types/domain/pagination.types.js';
 import {
   RequestWithQuery,
@@ -30,7 +31,7 @@ const router = Router();
 
 router.get('/', async (req: RequestWithQuery<PaginationSortQuery>, res: Response) => {
   try {
-    const paginationSortParams: PaginationSortParams = getPaginationSortParams(req.query, 'blogs');
+    const paginationSortParams: BlogPaginationSortParams = getPaginationSortParams(req.query, 'blogs');
     const result: PaginatedSortedResponse<BlogResponseDto> = await blogsService.getBlogs(paginationSortParams);
     res.status(HTTP_STATUSES.OK).send(result);
   } catch (error) {
@@ -125,11 +126,11 @@ router.get(
       }
 
       const paginationSortParams: PaginationSortParams = getPaginationSortParams(req.query, 'posts');
-      const result: PaginatedSortedResponse<PostResponseDto> = await postsService.getPostsByBlogId(
+      const posts: PaginatedSortedResponse<PostResponseDto> = await postsService.getPostsByBlogId(
         blogId,
         paginationSortParams
       );
-      res.status(HTTP_STATUSES.OK).send(result);
+      res.status(HTTP_STATUSES.OK).send(posts);
     } catch (error) {
       res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
     }

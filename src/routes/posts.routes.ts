@@ -3,7 +3,7 @@ import { postsService } from '../services/posts.service.js';
 import { HTTP_STATUSES } from '../constants/http-statuses.js';
 import { ERROR_MESSAGES } from '../constants/error-messages.js';
 import type { PostResponseDto, CreatePostDto, UpdatePostDto } from '../types/domain/post.types.js';
-import type { PaginationSortQuery } from '../types/domain/pagination.types.js';
+import type { PaginatedSortedResponse, PaginationSortQuery } from '../types/domain/pagination.types.js';
 import {
   RequestWithQuery,
   RequestWithParams,
@@ -20,8 +20,8 @@ const router = Router();
 router.get('/', async (req: RequestWithQuery<PaginationSortQuery>, res: Response) => {
   try {
     const paginationParams = getPaginationSortParams(req.query, 'posts');
-    const result = await postsService.getPosts(paginationParams);
-    res.status(HTTP_STATUSES.OK).send(result);
+    const posts: PaginatedSortedResponse<PostResponseDto> = await postsService.getPosts(paginationParams);
+    res.status(HTTP_STATUSES.OK).send(posts);
   } catch (error) {
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }

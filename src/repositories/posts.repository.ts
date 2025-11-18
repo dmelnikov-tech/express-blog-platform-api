@@ -64,8 +64,8 @@ export const postsRepository = {
 
   async create(post: Post): Promise<PostDocument> {
     const collection = getCollection();
-    await collection.insertOne(post as PostDocument);
-    return post as PostDocument;
+    await collection.insertOne(post as PostDocument); // as PostDoument чтоб typescript не ругался. _id добавляет mongodb при вставке
+    return post as PostDocument; // MongoDB мутирует объект, добавляя _id, поэтому возвращаем как PostDoument
   },
 
   async update(id: string, data: UpdatePostDto): Promise<PostDocument | null> {
