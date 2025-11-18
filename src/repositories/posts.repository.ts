@@ -32,6 +32,34 @@ export const postsRepository = {
     return { items, totalCount };
   },
 
+  async findByBlogId(
+    blogId: string,
+    params: PaginationSortParams
+  ): Promise<{
+    items: PostDocument[];
+    totalCount: number;
+  }> {
+    const collection = getCollection();
+
+    const sortDirection: SortDirection =
+      params.sortDirection === "asc" ? 1 : -1;
+    const skip = (params.pageNumber - 1) * params.pageSize;
+
+    const filter = { blogId };
+
+    const [items, totalCount] = await Promise.all([
+      collection
+        .find(filter)
+        .sort({ [params.sortBy]: sortDirection })
+        .skip(skip)
+        .limit(params.pageSize)
+        .toArray(),
+      collection.countDocuments(filter),
+    ]);
+
+    return { items, totalCount };
+  },
+
   async findById(id: string): Promise<PostDocument | null> {
     const collection = getCollection();
     return await collection.findOne({ id: id });

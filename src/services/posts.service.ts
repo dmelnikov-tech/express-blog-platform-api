@@ -32,6 +32,27 @@ export const postsService = {
     };
   },
 
+  async getPostsByBlogId(
+    blogId: string,
+    params: PaginationSortParams
+  ): Promise<PaginatedSortedResponse<PostResponseDto>> {
+    const { items, totalCount } = await postsRepository.findByBlogId(
+      blogId,
+      params
+    );
+    const posts = this._mapPostsToResponseDto(items);
+
+    const pagesCount = Math.ceil(totalCount / params.pageSize);
+
+    return {
+      pagesCount,
+      page: params.pageNumber,
+      pageSize: params.pageSize,
+      totalCount,
+      items: posts,
+    };
+  },
+
   async getPostById(id: string): Promise<PostResponseDto | null> {
     const post: PostDocument | null = await postsRepository.findById(id);
     return post ? this._mapPostToResponseDto(post) : null;
