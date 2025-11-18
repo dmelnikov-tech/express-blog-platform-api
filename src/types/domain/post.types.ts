@@ -31,3 +31,9 @@ export interface UpdatePostDto {
   content: string;
   blogId: string;
 }
+
+export interface CreatePostByBlogIdDto {
+  title: string;
+  shortDescription: string;
+  content: string;
+}

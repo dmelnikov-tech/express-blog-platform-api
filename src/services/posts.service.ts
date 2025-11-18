@@ -1,23 +1,13 @@
-import { randomUUID } from "crypto";
-import type {
-  Post,
-  PostResponseDto,
-  CreatePostDto,
-  UpdatePostDto,
-} from "../types/domain/post.types.js";
-import type { PostDocument } from "../types/infrastructure/post.document.types.js";
-import type {
-  PaginationSortParams,
-  PaginatedSortedResponse,
-} from "../types/domain/pagination.types.js";
-import { postsRepository } from "../repositories/posts.repository.js";
-import { blogsService } from "./blogs.service.js";
-import { ERROR_MESSAGES } from "../constants/error-messages.js";
+import { randomUUID } from 'crypto';
+import type { Post, PostResponseDto, CreatePostDto, UpdatePostDto } from '../types/domain/post.types.js';
+import type { PostDocument } from '../types/infrastructure/post.document.types.js';
+import type { PaginationSortParams, PaginatedSortedResponse } from '../types/domain/pagination.types.js';
+import { postsRepository } from '../repositories/posts.repository.js';
+import { blogsService } from './blogs.service.js';
+import { ERROR_MESSAGES } from '../constants/error-messages.js';
 
 export const postsService = {
-  async getPosts(
-    params: PaginationSortParams
-  ): Promise<PaginatedSortedResponse<PostResponseDto>> {
+  async getPosts(params: PaginationSortParams): Promise<PaginatedSortedResponse<PostResponseDto>> {
     const { items, totalCount } = await postsRepository.find(params);
     const posts = this._mapPostsToResponseDto(items);
 
@@ -36,10 +26,7 @@ export const postsService = {
     blogId: string,
     params: PaginationSortParams
   ): Promise<PaginatedSortedResponse<PostResponseDto>> {
-    const { items, totalCount } = await postsRepository.findByBlogId(
-      blogId,
-      params
-    );
+    const { items, totalCount } = await postsRepository.findByBlogId(blogId, params);
     const posts = this._mapPostsToResponseDto(items);
 
     const pagesCount = Math.ceil(totalCount / params.pageSize);
@@ -84,10 +71,7 @@ export const postsService = {
       ...data,
       blogName: blog.name,
     };
-    const post: PostDocument | null = await postsRepository.update(
-      id,
-      updateData
-    );
+    const post: PostDocument | null = await postsRepository.update(id, updateData);
     return post ? true : false;
   },
 
@@ -107,6 +91,6 @@ export const postsService = {
     };
   },
   _mapPostsToResponseDto(posts: PostDocument[]): PostResponseDto[] {
-    return posts.map((post) => this._mapPostToResponseDto(post));
+    return posts.map(post => this._mapPostToResponseDto(post));
   },
 };

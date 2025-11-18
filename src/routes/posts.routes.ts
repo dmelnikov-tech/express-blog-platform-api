@@ -1,17 +1,25 @@
-import { Router, Request, Response } from "express";
-import { postsService } from "../services/posts.service.js";
-import { HTTP_STATUSES } from "../constants/http-statuses.js";
-import { ERROR_MESSAGES } from "../constants/error-messages.js";
-import type { PostResponseDto } from "../types/domain/post.types.js";
-import { basicAuthMiddleware } from "../middlewares/basic-auth.middleware.js";
-import { postValidationMiddleware } from "../middlewares/validation.middleware.js";
-import { getPaginationSortParams } from "../utils/pagination-sort.utils.js";
+import { Router, Response } from 'express';
+import { postsService } from '../services/posts.service.js';
+import { HTTP_STATUSES } from '../constants/http-statuses.js';
+import { ERROR_MESSAGES } from '../constants/error-messages.js';
+import type { PostResponseDto, CreatePostDto, UpdatePostDto } from '../types/domain/post.types.js';
+import type { PaginationSortQuery } from '../types/domain/pagination.types.js';
+import {
+  RequestWithQuery,
+  RequestWithParams,
+  RequestWithBody,
+  RequestWithParamsAndBody,
+  ParamsId,
+} from '../types/express-request.types.js';
+import { basicAuthMiddleware } from '../middlewares/basic-auth.middleware.js';
+import { postValidationMiddleware } from '../middlewares/validation.middleware.js';
+import { getPaginationSortParams } from '../utils/pagination-sort.utils.js';
 
 const router = Router();
 
-router.get("/", async (req: Request, res: Response) => {
+router.get('/', async (req: RequestWithQuery<PaginationSortQuery>, res: Response) => {
   try {
-    const paginationParams = getPaginationSortParams(req.query, "posts");
+    const paginationParams = getPaginationSortParams(req.query, 'posts');
     const result = await postsService.getPosts(paginationParams);
     res.status(HTTP_STATUSES.OK).send(result);
   } catch (error) {
@@ -19,7 +27,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/:id", async (req: Request, res: Response) => {
+router.get('/:id', async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
     const { id } = req.params;
     const post: PostResponseDto | null = await postsService.getPostById(id);
@@ -35,10 +43,10 @@ router.get("/:id", async (req: Request, res: Response) => {
 });
 
 router.post(
-  "/",
+  '/',
   basicAuthMiddleware,
   postValidationMiddleware,
-  async (req: Request, res: Response) => {
+  async (req: RequestWithBody<CreatePostDto>, res: Response) => {
     try {
       const { title, shortDescription, content, blogId } = req.body;
       const post: PostResponseDto = await postsService.createPost({
@@ -49,13 +57,8 @@ router.post(
       });
       res.status(HTTP_STATUSES.CREATED).send(post);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === ERROR_MESSAGES.BLOG_NOT_FOUND
-      ) {
-        return res
-          .status(HTTP_STATUSES.NOT_FOUND)
-          .send({ message: ERROR_MESSAGES.BLOG_NOT_FOUND });
+      if (error instanceof Error && error.message === ERROR_MESSAGES.BLOG_NOT_FOUND) {
+        return res.status(HTTP_STATUSES.NOT_FOUND).send({ message: ERROR_MESSAGES.BLOG_NOT_FOUND });
       }
       res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
     }
@@ -63,10 +66,10 @@ router.post(
 );
 
 router.put(
-  "/:id",
+  '/:id',
   basicAuthMiddleware,
   postValidationMiddleware,
-  async (req: Request, res: Response) => {
+  async (req: RequestWithParamsAndBody<ParamsId, UpdatePostDto>, res: Response) => {
     try {
       const { id } = req.params;
       const { title, shortDescription, content, blogId } = req.body;
@@ -83,36 +86,27 @@ router.put(
 
       res.sendStatus(HTTP_STATUSES.NO_CONTENT);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === ERROR_MESSAGES.BLOG_NOT_FOUND
-      ) {
-        return res
-          .status(HTTP_STATUSES.NOT_FOUND)
-          .send({ message: ERROR_MESSAGES.BLOG_NOT_FOUND });
+      if (error instanceof Error && error.message === ERROR_MESSAGES.BLOG_NOT_FOUND) {
+        return res.status(HTTP_STATUSES.NOT_FOUND).send({ message: ERROR_MESSAGES.BLOG_NOT_FOUND });
       }
       res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
     }
   }
 );
 
-router.delete(
-  "/:id",
-  basicAuthMiddleware,
-  async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const deleteResult: boolean = await postsService.deletePost(id);
+router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsId>, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deleteResult: boolean = await postsService.deletePost(id);
 
-      if (!deleteResult) {
-        return res.sendStatus(HTTP_STATUSES.NOT_FOUND);
-      }
-
-      res.sendStatus(HTTP_STATUSES.NO_CONTENT);
-    } catch (error) {
-      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    if (!deleteResult) {
+      return res.sendStatus(HTTP_STATUSES.NOT_FOUND);
     }
+
+    res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+  } catch (error) {
+    res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
-);
+});
 
 export default router;

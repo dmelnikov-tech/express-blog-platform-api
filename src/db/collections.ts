@@ -1,4 +1,4 @@
 export const COLLECTIONS = {
-  BLOGS: "blogs",
-  POSTS: "posts",
+  BLOGS: 'blogs',
+  POSTS: 'posts',
 };

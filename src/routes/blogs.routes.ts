@@ -1,38 +1,44 @@
-import { Router, Request, Response } from "express";
-import { blogsService } from "../services/blogs.service.js";
-import { postsService } from "../services/posts.service.js";
-import { HTTP_STATUSES } from "../constants/http-statuses.js";
-import { ERROR_MESSAGES } from "../constants/error-messages.js";
-import type { BlogResponseDto } from "../types/domain/blog.types.js";
-import type { PostResponseDto } from "../types/domain/post.types.js";
+import { Router, Response } from 'express';
+import { blogsService } from '../services/blogs.service.js';
+import { postsService } from '../services/posts.service.js';
+import { HTTP_STATUSES } from '../constants/http-statuses.js';
+import { ERROR_MESSAGES } from '../constants/error-messages.js';
+import type { BlogResponseDto, CreateBlogDto, UpdateBlogDto } from '../types/domain/blog.types.js';
+import type { PostResponseDto, CreatePostByBlogIdDto } from '../types/domain/post.types.js';
 import type {
   PaginatedSortedResponse,
   PaginationSortParams,
-} from "../types/domain/pagination.types.js";
-import { basicAuthMiddleware } from "../middlewares/basic-auth.middleware.js";
+  PaginationSortQuery,
+} from '../types/domain/pagination.types.js';
+import {
+  RequestWithQuery,
+  RequestWithParams,
+  RequestWithBody,
+  RequestWithParamsAndBody,
+  RequestWithParamsAndQuery,
+  ParamsId,
+  ParamsBlogId,
+} from '../types/express-request.types.js';
+import { basicAuthMiddleware } from '../middlewares/basic-auth.middleware.js';
 import {
   blogValidationMiddleware,
   createPostForBlogValidationMiddleware,
-} from "../middlewares/validation.middleware.js";
-import { getPaginationSortParams } from "../utils/pagination-sort.utils.js";
+} from '../middlewares/validation.middleware.js';
+import { getPaginationSortParams } from '../utils/pagination-sort.utils.js';
 
 const router = Router();
 
-router.get("/", async (req: Request, res: Response) => {
+router.get('/', async (req: RequestWithQuery<PaginationSortQuery>, res: Response) => {
   try {
-    const paginationSortParams: PaginationSortParams = getPaginationSortParams(
-      req.query,
-      "blogs"
-    );
-    const result: PaginatedSortedResponse<BlogResponseDto> =
-      await blogsService.getBlogs(paginationSortParams);
+    const paginationSortParams: PaginationSortParams = getPaginationSortParams(req.query, 'blogs');
+    const result: PaginatedSortedResponse<BlogResponseDto> = await blogsService.getBlogs(paginationSortParams);
     res.status(HTTP_STATUSES.OK).send(result);
   } catch (error) {
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
 });
 
-router.get("/:id", async (req: Request, res: Response) => {
+router.get('/:id', async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
     const { id } = req.params;
     const blog: BlogResponseDto | null = await blogsService.getBlogById(id);
@@ -48,10 +54,10 @@ router.get("/:id", async (req: Request, res: Response) => {
 });
 
 router.post(
-  "/",
+  '/',
   basicAuthMiddleware,
   blogValidationMiddleware,
-  async (req: Request, res: Response) => {
+  async (req: RequestWithBody<CreateBlogDto>, res: Response) => {
     try {
       const { name, description, websiteUrl } = req.body;
       const blog: BlogResponseDto = await blogsService.createBlog({
@@ -67,10 +73,10 @@ router.post(
 );
 
 router.put(
-  "/:id",
+  '/:id',
   basicAuthMiddleware,
   blogValidationMiddleware,
-  async (req: Request, res: Response) => {
+  async (req: RequestWithParamsAndBody<ParamsId, UpdateBlogDto>, res: Response) => {
     try {
       const { id } = req.params;
       const { name, description, websiteUrl } = req.body;
@@ -91,54 +97,50 @@ router.put(
   }
 );
 
-router.delete(
-  "/:id",
-  basicAuthMiddleware,
-  async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const deleteResult: boolean = await blogsService.deleteBlog(id);
+router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsId>, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deleteResult: boolean = await blogsService.deleteBlog(id);
 
-      if (!deleteResult) {
-        return res.sendStatus(HTTP_STATUSES.NOT_FOUND);
+    if (!deleteResult) {
+      return res.sendStatus(HTTP_STATUSES.NOT_FOUND);
+    }
+
+    res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+  } catch (error) {
+    res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+  }
+});
+
+// posts
+router.get(
+  '/:blogId/posts',
+  async (req: RequestWithParamsAndQuery<ParamsBlogId, PaginationSortQuery>, res: Response) => {
+    try {
+      const { blogId } = req.params;
+      const blog: BlogResponseDto | null = await blogsService.getBlogById(blogId);
+
+      if (!blog) {
+        return res.status(HTTP_STATUSES.NOT_FOUND).send({ message: ERROR_MESSAGES.BLOG_NOT_FOUND });
       }
 
-      res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+      const paginationSortParams: PaginationSortParams = getPaginationSortParams(req.query, 'posts');
+      const result: PaginatedSortedResponse<PostResponseDto> = await postsService.getPostsByBlogId(
+        blogId,
+        paginationSortParams
+      );
+      res.status(HTTP_STATUSES.OK).send(result);
     } catch (error) {
       res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
     }
   }
 );
 
-// posts
-router.get("/:blogId/posts", async (req: Request, res: Response) => {
-  try {
-    const { blogId } = req.params;
-    const blog: BlogResponseDto | null = await blogsService.getBlogById(blogId);
-
-    if (!blog) {
-      return res
-        .status(HTTP_STATUSES.NOT_FOUND)
-        .send({ message: ERROR_MESSAGES.BLOG_NOT_FOUND });
-    }
-
-    const paginationSortParams: PaginationSortParams = getPaginationSortParams(
-      req.query,
-      "posts"
-    );
-    const result: PaginatedSortedResponse<PostResponseDto> =
-      await postsService.getPostsByBlogId(blogId, paginationSortParams);
-    res.status(HTTP_STATUSES.OK).send(result);
-  } catch (error) {
-    res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
-  }
-});
-
 router.post(
-  "/:blogId/posts",
+  '/:blogId/posts',
   basicAuthMiddleware,
   createPostForBlogValidationMiddleware,
-  async (req: Request, res: Response) => {
+  async (req: RequestWithParamsAndBody<ParamsBlogId, CreatePostByBlogIdDto>, res: Response) => {
     try {
       const { blogId } = req.params;
       const { title, shortDescription, content } = req.body;
@@ -151,13 +153,8 @@ router.post(
       });
       res.status(HTTP_STATUSES.CREATED).send(post);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === ERROR_MESSAGES.BLOG_NOT_FOUND
-      ) {
-        return res
-          .status(HTTP_STATUSES.NOT_FOUND)
-          .send({ message: ERROR_MESSAGES.BLOG_NOT_FOUND });
+      if (error instanceof Error && error.message === ERROR_MESSAGES.BLOG_NOT_FOUND) {
+        return res.status(HTTP_STATUSES.NOT_FOUND).send({ message: ERROR_MESSAGES.BLOG_NOT_FOUND });
       }
       res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
     }

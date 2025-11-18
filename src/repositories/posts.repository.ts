@@ -1,12 +1,11 @@
-import { DeleteResult, SortDirection } from "mongodb";
-import type { Post, UpdatePostDto } from "../types/domain/post.types.js";
-import type { PostDocument } from "../types/infrastructure/post.document.types.js";
-import type { PaginationSortParams } from "../types/domain/pagination.types.js";
-import { getDatabase } from "../db/mongodb.js";
-import { COLLECTIONS } from "../db/collections.js";
+import { DeleteResult, SortDirection } from 'mongodb';
+import type { Post, UpdatePostDto } from '../types/domain/post.types.js';
+import type { PostDocument } from '../types/infrastructure/post.document.types.js';
+import type { PaginationSortParams } from '../types/domain/pagination.types.js';
+import { getDatabase } from '../db/mongodb.js';
+import { COLLECTIONS } from '../db/collections.js';
 
-const getCollection = () =>
-  getDatabase().collection<PostDocument>(COLLECTIONS.POSTS);
+const getCollection = () => getDatabase().collection<PostDocument>(COLLECTIONS.POSTS);
 
 export const postsRepository = {
   async find(params: PaginationSortParams): Promise<{
@@ -15,8 +14,7 @@ export const postsRepository = {
   }> {
     const collection = getCollection();
 
-    const sortDirection: SortDirection =
-      params.sortDirection === "asc" ? 1 : -1;
+    const sortDirection: SortDirection = params.sortDirection === 'asc' ? 1 : -1;
     const skip = (params.pageNumber - 1) * params.pageSize;
 
     const [items, totalCount] = await Promise.all([
@@ -41,8 +39,7 @@ export const postsRepository = {
   }> {
     const collection = getCollection();
 
-    const sortDirection: SortDirection =
-      params.sortDirection === "asc" ? 1 : -1;
+    const sortDirection: SortDirection = params.sortDirection === 'asc' ? 1 : -1;
     const skip = (params.pageNumber - 1) * params.pageSize;
 
     const filter = { blogId };
@@ -82,6 +79,7 @@ export const postsRepository = {
     return result.deletedCount > 0;
   },
 
+  //метод используется только при тестировании в testing.routes
   async deleteAll(): Promise<boolean> {
     const collection = getCollection();
     const result: DeleteResult = await collection.deleteMany({});

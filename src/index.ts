@@ -1,17 +1,17 @@
-import express from "express";
-import "dotenv/config";
-import blogsRoutes from "./routes/blogs.routes.js";
-import postsRoutes from "./routes/posts.routes.js";
-import testingRoutes from "./routes/testing.routes.js";
-import { connectToDatabase, closeDatabaseConnection } from "./db/mongodb.js";
+import express from 'express';
+import 'dotenv/config';
+import blogsRoutes from './routes/blogs.routes.js';
+import postsRoutes from './routes/posts.routes.js';
+import testingRoutes from './routes/testing.routes.js';
+import { connectToDatabase, closeDatabaseConnection } from './db/mongodb.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use("/blogs", blogsRoutes);
-app.use("/posts", postsRoutes);
-app.use("/testing", testingRoutes);
+app.use('/blogs', blogsRoutes);
+app.use('/posts', postsRoutes);
+app.use('/testing', testingRoutes);
 
 async function startServer() {
   try {
@@ -20,17 +20,17 @@ async function startServer() {
       console.log(`Server is running on http://localhost:${PORT}`);
     });
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 }
 
 // Graceful shutdown
-process.on("SIGINT", async () => {
+process.on('SIGINT', async () => {
   await closeDatabaseConnection();
   process.exit(0);
 });
-process.on("SIGTERM", async () => {
+process.on('SIGTERM', async () => {
   await closeDatabaseConnection();
   process.exit(0);
 });

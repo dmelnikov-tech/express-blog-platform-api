@@ -1,14 +1,10 @@
-import { Request, Response, NextFunction } from "express";
-import { HTTP_STATUSES } from "../constants/http-statuses.js";
+import { Request, Response, NextFunction } from 'express';
+import { HTTP_STATUSES } from '../constants/http-statuses.js';
 
-export const basicAuthMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const basicAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
-  if (authHeader === "Basic YWRtaW46cXdlcnR5") {
+  if (authHeader === 'Basic YWRtaW46cXdlcnR5') {
     return next();
   }
 

@@ -1,21 +1,11 @@
-import { randomUUID } from "crypto";
-import type {
-  Blog,
-  BlogResponseDto,
-  CreateBlogDto,
-  UpdateBlogDto,
-} from "../types/domain/blog.types.js";
-import type { BlogDocument } from "../types/infrastructure/blog.document.types.js";
-import type {
-  PaginationSortParams,
-  PaginatedSortedResponse,
-} from "../types/domain/pagination.types.js";
-import { blogsRepository } from "../repositories/blogs.repository.js";
+import { randomUUID } from 'crypto';
+import type { Blog, BlogResponseDto, CreateBlogDto, UpdateBlogDto } from '../types/domain/blog.types.js';
+import type { BlogDocument } from '../types/infrastructure/blog.document.types.js';
+import type { PaginationSortParams, PaginatedSortedResponse } from '../types/domain/pagination.types.js';
+import { blogsRepository } from '../repositories/blogs.repository.js';
 
 export const blogsService = {
-  async getBlogs(
-    params: PaginationSortParams
-  ): Promise<PaginatedSortedResponse<BlogResponseDto>> {
+  async getBlogs(params: PaginationSortParams): Promise<PaginatedSortedResponse<BlogResponseDto>> {
     const { items, totalCount } = await blogsRepository.find(params);
     const blogs = this._mapBlogsToResponseDto(items);
 
@@ -66,6 +56,6 @@ export const blogsService = {
     };
   },
   _mapBlogsToResponseDto(blogs: BlogDocument[]): BlogResponseDto[] {
-    return blogs.map((blog) => this._mapBlogToResponseDto(blog));
+    return blogs.map(blog => this._mapBlogToResponseDto(blog));
   },
 };

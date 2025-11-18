@@ -1,13 +1,12 @@
-import { DeleteResult, SortDirection } from "mongodb";
-import type { Blog, UpdateBlogDto } from "../types/domain/blog.types.js";
-import type { BlogDocument } from "../types/infrastructure/blog.document.types.js";
-import type { BlogFilter } from "../types/infrastructure/blog-filter.types.js";
-import type { PaginationSortParams } from "../types/domain/pagination.types.js";
-import { getDatabase } from "../db/mongodb.js";
-import { COLLECTIONS } from "../db/collections.js";
+import { DeleteResult, SortDirection } from 'mongodb';
+import type { Blog, UpdateBlogDto } from '../types/domain/blog.types.js';
+import type { BlogDocument } from '../types/infrastructure/blog.document.types.js';
+import type { BlogFilter } from '../types/infrastructure/blog-filter.types.js';
+import type { PaginationSortParams } from '../types/domain/pagination.types.js';
+import { getDatabase } from '../db/mongodb.js';
+import { COLLECTIONS } from '../db/collections.js';
 
-const getCollection = () =>
-  getDatabase().collection<BlogDocument>(COLLECTIONS.BLOGS);
+const getCollection = () => getDatabase().collection<BlogDocument>(COLLECTIONS.BLOGS);
 
 export const blogsRepository = {
   async find(params: PaginationSortParams): Promise<{
@@ -16,12 +15,9 @@ export const blogsRepository = {
   }> {
     const collection = getCollection();
 
-    const filter: BlogFilter = params.searchNameTerm
-      ? { name: { $regex: params.searchNameTerm, $options: "i" } }
-      : {};
+    const filter: BlogFilter = params.searchNameTerm ? { name: { $regex: params.searchNameTerm, $options: 'i' } } : {};
 
-    const sortDirection: SortDirection =
-      params.sortDirection === "asc" ? 1 : -1;
+    const sortDirection: SortDirection = params.sortDirection === 'asc' ? 1 : -1;
     const skip = (params.pageNumber - 1) * params.pageSize;
 
     const [items, totalCount] = await Promise.all([
