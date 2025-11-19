@@ -171,3 +171,24 @@ export const createUserValidationMiddleware = [
     .withMessage('email must match pattern ^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$'),
   handleValidationErrors,
 ];
+
+export const loginValidationMiddleware = [
+  body('loginOrEmail')
+    .isString()
+    .withMessage('loginOrEmail must be a string')
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage('loginOrEmail should not be empty'),
+  body('password')
+    .isString()
+    .withMessage('password must be a string')
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage('password should not be empty')
+    .bail()
+    .isLength({ min: 6, max: 20 })
+    .withMessage('password should be between 6 and 20 characters'),
+  handleValidationErrors,
+];

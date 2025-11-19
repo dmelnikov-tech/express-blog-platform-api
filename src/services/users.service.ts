@@ -8,7 +8,7 @@ import { hashPassword } from '../utils/password.utils.js';
 export const usersService = {
   async getUsers(params: UserPaginationSortParams): Promise<PaginatedSortedResponse<UserResponseDto>> {
     const { items, totalCount } = await usersRepository.find(params);
-    const users = this._mapUsersToResponseDto(items);
+    const users: UserResponseDto[] = this._mapUsersToResponseDto(items);
 
     const pagesCount = Math.ceil(totalCount / params.pageSize);
 
@@ -22,26 +22,26 @@ export const usersService = {
   },
 
   async createUser(data: CreateUserDto): Promise<CreateUserResult> {
-    const existingUserByLogin = await usersRepository.findByLogin(data.login);
-    if (existingUserByLogin) {
-      return {
-        success: false,
-        error: {
-          field: 'login',
-          message: 'login must be unique',
-        },
-      };
-    }
-
-    const existingUserByEmail = await usersRepository.findByEmail(data.email);
-    if (existingUserByEmail) {
-      return {
-        success: false,
-        error: {
-          field: 'email',
-          message: 'email must be unique',
-        },
-      };
+    const existingUser: UserDocument | null = await usersRepository.findByLoginOrEmail(data.login, data.email);
+    if (existingUser) {
+      if (existingUser.login === data.login) {
+        return {
+          success: false,
+          error: {
+            field: 'login',
+            message: 'login must be unique',
+          },
+        };
+      }
+      if (existingUser.email === data.email) {
+        return {
+          success: false,
+          error: {
+            field: 'email',
+            message: 'email must be unique',
+          },
+        };
+      }
     }
 
     const passwordHash = await hashPassword(data.password);
@@ -54,7 +54,7 @@ export const usersService = {
       createdAt: new Date().toISOString(),
     };
 
-    const createdUser = await usersRepository.create(newUser);
+    const createdUser: UserDocument = await usersRepository.create(newUser);
     return {
       success: true,
       data: this._mapUserToResponseDto(createdUser),

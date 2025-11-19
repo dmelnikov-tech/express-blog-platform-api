@@ -56,6 +56,13 @@ export const usersRepository = {
     return await collection.findOne({ email: email });
   },
 
+  async findByLoginOrEmail(login: string, email: string): Promise<UserDocument | null> {
+    const collection = getCollection();
+    return await collection.findOne({
+      $or: [{ login }, { email }],
+    });
+  },
+
   async create(user: User): Promise<UserDocument> {
     const collection = getCollection();
     await collection.insertOne(user as UserDocument); // as UserDocument чтоб typescript не ругался. _id добавляет mongodb при вставке
