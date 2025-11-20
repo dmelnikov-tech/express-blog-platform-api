@@ -10,13 +10,15 @@ const router = Router();
 router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<LoginDto>, res: Response) => {
   try {
     const { loginOrEmail, password } = req.body;
-    const isValid: boolean = await authService.login({ loginOrEmail, password });
+    const accessToken: string | null = await authService.login({ loginOrEmail, password });
 
-    if (!isValid) {
+    if (!accessToken) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
     }
 
-    res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+    res.status(HTTP_STATUSES.OK).send({
+      accessToken,
+    });
   } catch (error) {
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
