@@ -21,6 +21,15 @@ export const usersService = {
     };
   },
 
+  async getUserById(id: string): Promise<UserResponseDto | null> {
+    const user: UserDocument | null = await usersRepository.findById(id);
+    if (!user) {
+      return null;
+    }
+
+    return this._mapUserToResponseDto(user);
+  },
+
   async createUser(data: CreateUserDto): Promise<CreateUserResult> {
     const existingUser: UserDocument | null = await usersRepository.findByLoginOrEmail(data.login, data.email);
     if (existingUser) {

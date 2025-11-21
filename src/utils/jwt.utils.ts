@@ -1,8 +1,8 @@
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import type { AuthTokenPayload } from '../types/domain/auth.types.js';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const JWT_EXPIRES_IN = '1h';
 
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
@@ -13,7 +13,7 @@ export const generateAccessToken = (userId: string): string => {
     userId,
   };
 
-  return jwt.sign(payload, JWT_SECRET!, {
+  return jwt.sign(payload, JWT_ACCESS_SECRET!, {
     expiresIn: JWT_EXPIRES_IN,
   });
 };
@@ -29,7 +29,7 @@ export const generateRefreshToken = (userId: string): string => {
 };
 
 export const verifyAccessToken = (token: string): AuthTokenPayload => {
-  return jwt.verify(token, JWT_SECRET!) as AuthTokenPayload;
+  return jwt.verify(token, JWT_ACCESS_SECRET!) as AuthTokenPayload;
 };
 
 export const verifyRefreshToken = (token: string): AuthTokenPayload => {

@@ -46,21 +46,16 @@ export const usersRepository = {
     return { items, totalCount };
   },
 
-  async findByLogin(login: string): Promise<UserDocument | null> {
-    const collection = getCollection();
-    return await collection.findOne({ login: login });
-  },
-
-  async findByEmail(email: string): Promise<UserDocument | null> {
-    const collection = getCollection();
-    return await collection.findOne({ email: email });
-  },
-
   async findByLoginOrEmail(login: string, email: string): Promise<UserDocument | null> {
     const collection = getCollection();
     return await collection.findOne({
       $or: [{ login }, { email }],
     });
+  },
+
+  async findById(id: string): Promise<UserDocument | null> {
+    const collection = getCollection();
+    return await collection.findOne({ id });
   },
 
   async create(user: User): Promise<UserDocument> {
