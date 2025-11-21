@@ -192,3 +192,17 @@ export const loginValidationMiddleware = [
     .withMessage('password should be between 6 and 20 characters'),
   handleValidationErrors,
 ];
+
+export const createCommentValidationMiddleware = [
+  body('content')
+    .isString()
+    .withMessage('content must be a string')
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage('content should not be empty')
+    .bail()
+    .isLength({ min: 20, max: 300 })
+    .withMessage('content should be between 20 and 300 characters'),
+  handleValidationErrors,
+];

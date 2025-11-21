@@ -1,18 +1,23 @@
 import { Router, Response } from 'express';
 import { postsService } from '../services/posts.service.js';
+import { commentsService } from '../services/comments.service.js';
 import { HTTP_STATUSES } from '../constants/http-statuses.js';
 import { ERROR_MESSAGES } from '../constants/error-messages.js';
 import type { PostResponseDto, CreatePostDto, UpdatePostDto } from '../types/domain/post.types.js';
+import type { CommentResponseDto, CreateCommentDto } from '../types/domain/comment.types.js';
 import type { PaginatedSortedResponse, PaginationSortQuery } from '../types/domain/pagination.types.js';
 import {
   RequestWithQuery,
   RequestWithParams,
   RequestWithBody,
   RequestWithParamsAndBody,
+  RequestWithParamsAndQuery,
   ParamsId,
+  ParamsPostId,
 } from '../types/express-request.types.js';
 import { basicAuthMiddleware } from '../middlewares/basic-auth.middleware.js';
-import { postValidationMiddleware } from '../middlewares/validation.middleware.js';
+import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
+import { postValidationMiddleware, createCommentValidationMiddleware } from '../middlewares/validation.middleware.js';
 import { getPaginationSortParams } from '../utils/pagination-sort.utils.js';
 
 const router = Router();
@@ -108,5 +113,47 @@ router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsI
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
 });
+
+// comments
+router.get(
+  '/:postId/comments',
+  async (req: RequestWithParamsAndQuery<ParamsPostId, PaginationSortQuery>, res: Response) => {
+    try {
+      const { postId } = req.params;
+      const paginationParams = getPaginationSortParams(req.query, 'comments');
+      const comments: PaginatedSortedResponse<CommentResponseDto> = await commentsService.getCommentsByPostId(
+        postId,
+        paginationParams
+      );
+      res.status(HTTP_STATUSES.OK).send(comments);
+    } catch (error) {
+      if (error instanceof Error && error.message === ERROR_MESSAGES.POST_NOT_FOUND) {
+        return res.status(HTTP_STATUSES.NOT_FOUND).send({ message: error.message });
+      }
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    }
+  }
+);
+
+router.post(
+  '/:postId/comments',
+  bearerAuthMiddleware,
+  createCommentValidationMiddleware,
+  async (req: RequestWithParamsAndBody<ParamsPostId, CreateCommentDto>, res: Response) => {
+    try {
+      const { postId } = req.params;
+      const { content } = req.body;
+      const comment: CommentResponseDto = await commentsService.createComment(postId, req.userId, {
+        content,
+      });
+      res.status(HTTP_STATUSES.CREATED).send(comment);
+    } catch (error) {
+      if (error instanceof Error && error.message === ERROR_MESSAGES.POST_NOT_FOUND) {
+        return res.status(HTTP_STATUSES.NOT_FOUND).send({ message: error.message });
+      }
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    }
+  }
+);
 
 export default router;

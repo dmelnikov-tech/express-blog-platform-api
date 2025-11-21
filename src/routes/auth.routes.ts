@@ -22,7 +22,6 @@ router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<Log
       accessToken,
     });
   } catch (error) {
-    console.log(error);
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
 });
