@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { Comment, CommentResponseDto, CreateCommentDto } from '../types/domain/comment.types.js';
+import type { Comment, CommentResponseDto, CreateCommentDto, UpdateCommentDto } from '../types/domain/comment.types.js';
 import type { CommentDocument } from '../types/infrastructure/comment.document.types.js';
 import type { PaginationSortParams, PaginatedSortedResponse } from '../types/domain/pagination.types.js';
 import { commentsRepository } from '../repositories/comments.repository.js';
@@ -30,7 +30,12 @@ export const commentsService = {
       items: comments,
     };
   },
-  
+
+  async getCommentById(id: string): Promise<CommentResponseDto | null> {
+    const comment: CommentDocument | null = await commentsRepository.findById(id);
+    return comment ? this._mapCommentToResponseDto(comment) : null;
+  },
+
   async createComment(postId: string, userId: string, data: CreateCommentDto): Promise<CommentResponseDto> {
     const post = await postsRepository.findById(postId);
     if (!post) {
@@ -56,6 +61,35 @@ export const commentsService = {
 
     const createdComment = await commentsRepository.create(newComment);
     return this._mapCommentToResponseDto(createdComment);
+  },
+
+  async updateComment(commentId: string, userId: string, data: UpdateCommentDto): Promise<boolean> {
+    const comment = await commentsRepository.findById(commentId);
+    if (!comment) {
+      throw new Error(ERROR_MESSAGES.COMMENT_NOT_FOUND);
+    }
+
+    if (comment.commentatorInfo.userId !== userId) {
+      throw new Error(ERROR_MESSAGES.COMMENT_FORBIDDEN);
+    }
+
+    const updatedComment: CommentDocument | null = await commentsRepository.update(commentId, {
+      content: data.content,
+    });
+    return updatedComment ? true : false;
+  },
+
+  async deleteComment(commentId: string, userId: string): Promise<boolean> {
+    const comment = await commentsRepository.findById(commentId);
+    if (!comment) {
+      throw new Error(ERROR_MESSAGES.COMMENT_NOT_FOUND);
+    }
+
+    if (comment.commentatorInfo.userId !== userId) {
+      throw new Error(ERROR_MESSAGES.COMMENT_FORBIDDEN);
+    }
+
+    return await commentsRepository.delete(commentId);
   },
 
   _mapCommentToResponseDto(comment: CommentDocument): CommentResponseDto {

@@ -4,6 +4,7 @@ import blogsRoutes from './routes/blogs.routes.js';
 import postsRoutes from './routes/posts.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import commentsRoutes from './routes/comments.routes.js';
 import testingRoutes from './routes/testing.routes.js';
 import { connectToDatabase, closeDatabaseConnection } from './db/mongodb.js';
 
@@ -15,6 +16,7 @@ app.use('/blogs', blogsRoutes);
 app.use('/posts', postsRoutes);
 app.use('/users', usersRoutes);
 app.use('/auth', authRoutes);
+app.use('/comments', commentsRoutes);
 app.use('/testing', testingRoutes);
 
 async function startServer() {

@@ -1,4 +1,4 @@
-import { SortDirection } from 'mongodb';
+import { DeleteResult, SortDirection } from 'mongodb';
 import type { Comment } from '../types/domain/comment.types.js';
 import type { CommentDocument } from '../types/infrastructure/comment.document.types.js';
 import type { PaginationSortParams } from '../types/domain/pagination.types.js';
@@ -35,9 +35,32 @@ export const commentsRepository = {
     return { items, totalCount };
   },
 
+  async findById(id: string): Promise<CommentDocument | null> {
+    const collection = getCollection();
+    return await collection.findOne({ id });
+  },
+
+  async update(id: string, data: { content: string }): Promise<CommentDocument | null> {
+    const collection = getCollection();
+    return await collection.findOneAndUpdate({ id }, { $set: data });
+  },
+
   async create(comment: Comment): Promise<CommentDocument> {
     const collection = getCollection();
     await collection.insertOne(comment as CommentDocument); // as CommentDocument чтоб typescript не ругался. _id добавляет mongodb при вставке
     return comment as CommentDocument; // MongoDB мутирует объект, добавляя _id, поэтому возвращаем как CommentDocument
+  },
+
+  async delete(id: string): Promise<boolean> {
+    const collection = getCollection();
+    const result: DeleteResult = await collection.deleteOne({ id });
+    return result.deletedCount > 0;
+  },
+
+  //метод используется только при тестировании в testing.routes
+  async deleteAll(): Promise<boolean> {
+    const collection = getCollection();
+    const result: DeleteResult = await collection.deleteMany({});
+    return result.deletedCount > 0;
   },
 };

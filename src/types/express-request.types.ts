@@ -11,7 +11,7 @@ type RequestWithParamsAndBody<ParamsType, BodyType> = Request<ParamsType, {}, Bo
 type RequestWithParamsAndQuery<ParamsType, QueryType> = Request<ParamsType, {}, {}, QueryType>;
 
 type ParamsId = { id: string };
-type ParamsBlogId = { blogId: string };
+type ParamsBlogId = { blogId: string }; //TODO: может надо использовать только id?
 type ParamsPostId = { postId: string };
 
 export {
