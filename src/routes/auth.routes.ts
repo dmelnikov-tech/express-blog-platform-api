@@ -1,9 +1,14 @@
 import { Router, Response, Request } from 'express';
 import { authService } from '../services/auth.service.js';
 import { HTTP_STATUSES } from '../constants/http-statuses.js';
-import type { LoginDto } from '../types/domain/auth.types.js';
+import type { LoginDto, EmailConfirmationResult } from '../types/domain/auth.types.js';
 import { RequestWithBody } from '../types/express-request.types.js';
-import { loginValidationMiddleware, createUserValidationMiddleware } from '../middlewares/validation.middleware.js';
+import {
+  loginValidationMiddleware,
+  createUserValidationMiddleware,
+  emailValidationMiddleware,
+  confirmationCodeValidationMiddleware,
+} from '../middlewares/validation.middleware.js';
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
 import { usersService } from '../services/users.service.js';
 import type { CreateUserDto, CreateUserResult } from '../types/domain/user.types.js';
@@ -28,6 +33,58 @@ router.post(
             {
               message: createResult.error.message,
               field: createResult.error.field,
+            },
+          ],
+        });
+      }
+
+      res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+    } catch (error) {
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    }
+  }
+);
+
+router.post(
+  '/registration-email-resending',
+  emailValidationMiddleware,
+  async (req: RequestWithBody<{ email: string }>, res: Response) => {
+    try {
+      const { email } = req.body;
+      const result: EmailConfirmationResult = await authService.resendConfirmationEmail(email);
+
+      if (!result.success) {
+        return res.status(HTTP_STATUSES.BAD_REQUEST).send({
+          errorsMessages: [
+            {
+              message: result.error.message,
+              field: result.error.field,
+            },
+          ],
+        });
+      }
+
+      res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+    } catch (error) {
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    }
+  }
+);
+
+router.post(
+  '/registration-confirmation',
+  confirmationCodeValidationMiddleware,
+  async (req: RequestWithBody<{ code: string }>, res: Response) => {
+    try {
+      const { code } = req.body;
+      const result: EmailConfirmationResult = await authService.confirmRegistration(code);
+
+      if (!result.success) {
+        return res.status(HTTP_STATUSES.BAD_REQUEST).send({
+          errorsMessages: [
+            {
+              message: result.error.message,
+              field: result.error.field,
             },
           ],
         });

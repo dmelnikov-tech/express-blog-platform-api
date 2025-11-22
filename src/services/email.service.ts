@@ -19,19 +19,23 @@ const transporter = nodemailer.createTransport({
 
 export const emailService = {
   async sendConfirmationEmail(email: string, confirmationCode: string): Promise<void> {
-    const confirmationUrl = `${CONFIRMATION_BASE_URL}/confirm-email?code=${confirmationCode}`;
+    try {
+      const confirmationUrl = `${CONFIRMATION_BASE_URL}/confirm-email?code=${confirmationCode}`;
 
-    const mailOptions = {
-      from: SMTP_USER,
-      to: email,
-      subject: 'Подтверждение email',
-      html: `
+      const mailOptions = {
+        from: SMTP_USER,
+        to: email,
+        subject: 'Подтверждение email',
+        html: `
         <h1>Спасибо за регистрацию</h1>
         <p>Для завершения регистрации перейдите по ссылке ниже:</p>
         <p><a href="${confirmationUrl}">завершить регистрацию</a></p>
       `,
-    };
+      };
 
-    await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      throw error;
+    }
   },
 };

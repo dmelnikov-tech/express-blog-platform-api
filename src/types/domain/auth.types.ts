@@ -8,3 +8,5 @@ export interface LoginDto {
 export interface AuthTokenPayload extends JwtPayload {
   userId: string;
 }
+
+export type EmailConfirmationResult = { success: true } | { success: false; error: { field: string; message: string } };

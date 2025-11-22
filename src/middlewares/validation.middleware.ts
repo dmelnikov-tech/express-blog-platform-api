@@ -206,3 +206,31 @@ export const createCommentValidationMiddleware = [
     .withMessage('content should be between 20 and 300 characters'),
   handleValidationErrors,
 ];
+
+export const emailValidationMiddleware = [
+  body('email')
+    .isString()
+    .withMessage('email must be a string')
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage('email should not be empty')
+    .bail()
+    .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)
+    .withMessage('email must match pattern ^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$'),
+  handleValidationErrors,
+];
+
+export const confirmationCodeValidationMiddleware = [
+  body('code')
+    .isString()
+    .withMessage('code must be a string')
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage('code should not be empty')
+    .bail()
+    .isUUID()
+    .withMessage('code must be a valid UUID'),
+  handleValidationErrors,
+];

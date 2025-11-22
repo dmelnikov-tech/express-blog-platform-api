@@ -39,7 +39,7 @@ export const usersService = {
           success: false,
           error: {
             field: 'login',
-            message: 'login must be unique',
+            message: 'User with this login already exists',
           },
         };
       }
@@ -48,7 +48,7 @@ export const usersService = {
           success: false,
           error: {
             field: 'email',
-            message: 'email must be unique',
+            message: 'User with this email already exists',
           },
         };
       }
@@ -62,9 +62,10 @@ export const usersService = {
       email: data.email,
       passwordHash,
       createdAt: new Date().toISOString(),
-      emailConfirmation: {
-        isConfirmed: true,
+      confirmationInfo: {
+        userIsConfirmed: true,
         confirmationCode: null,
+        confirmationCodeExpiredAt: null,
       },
     };
 

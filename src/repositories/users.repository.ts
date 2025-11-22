@@ -70,6 +70,49 @@ export const usersRepository = {
     return result.deletedCount > 0;
   },
 
+  async findByEmail(email: string): Promise<UserDocument | null> {
+    const collection = getCollection();
+    return await collection.findOne({ email });
+  },
+
+  async findByConfirmationCode(confirmationCode: string): Promise<UserDocument | null> {
+    const collection = getCollection();
+    return await collection.findOne({ 'confirmationInfo.confirmationCode': confirmationCode });
+  },
+
+  async updateConfirmationCode(
+    email: string,
+    confirmationCode: string,
+    confirmationCodeExpiredAt: string
+  ): Promise<boolean> {
+    const collection = getCollection();
+    const result = await collection.updateOne(
+      { email },
+      {
+        $set: {
+          'confirmationInfo.confirmationCode': confirmationCode,
+          'confirmationInfo.confirmationCodeExpiredAt': confirmationCodeExpiredAt,
+        },
+      }
+    );
+    return result.modifiedCount > 0;
+  },
+
+  async confirmUser(confirmationCode: string): Promise<boolean> {
+    const collection = getCollection();
+    const result = await collection.updateOne(
+      { 'confirmationInfo.confirmationCode': confirmationCode },
+      {
+        $set: {
+          'confirmationInfo.userIsConfirmed': true,
+          'confirmationInfo.confirmationCode': null,
+          'confirmationInfo.confirmationCodeExpiredAt': null,
+        },
+      }
+    );
+    return result.modifiedCount > 0;
+  },
+
   //метод используется только при тестировании в testing.routes
   async deleteAll(): Promise<boolean> {
     const collection = getCollection();

@@ -4,9 +4,10 @@ export interface User {
   email: string;
   passwordHash: string;
   createdAt: string;
-  emailConfirmation: {
-    isConfirmed: boolean;
+  confirmationInfo: {
+    userIsConfirmed: boolean;
     confirmationCode: string | null;
+    confirmationCodeExpiredAt: string | null;
   };
 }
 
