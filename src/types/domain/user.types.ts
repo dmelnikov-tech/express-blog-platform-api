@@ -4,6 +4,10 @@ export interface User {
   email: string;
   passwordHash: string;
   createdAt: string;
+  emailConfirmation: {
+    isConfirmed: boolean;
+    confirmationCode: string | null;
+  };
 }
 
 export interface UserResponseDto {

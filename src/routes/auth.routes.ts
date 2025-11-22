@@ -3,11 +3,42 @@ import { authService } from '../services/auth.service.js';
 import { HTTP_STATUSES } from '../constants/http-statuses.js';
 import type { LoginDto } from '../types/domain/auth.types.js';
 import { RequestWithBody } from '../types/express-request.types.js';
-import { loginValidationMiddleware } from '../middlewares/validation.middleware.js';
+import { loginValidationMiddleware, createUserValidationMiddleware } from '../middlewares/validation.middleware.js';
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
 import { usersService } from '../services/users.service.js';
+import type { CreateUserDto, CreateUserResult } from '../types/domain/user.types.js';
 
 const router = Router();
+
+router.post(
+  '/registration',
+  createUserValidationMiddleware,
+  async (req: RequestWithBody<CreateUserDto>, res: Response) => {
+    try {
+      const { login, password, email } = req.body;
+      const createResult: CreateUserResult = await authService.registration({
+        login,
+        password,
+        email,
+      });
+
+      if (!createResult.success) {
+        return res.status(HTTP_STATUSES.BAD_REQUEST).send({
+          errorsMessages: [
+            {
+              message: createResult.error.message,
+              field: createResult.error.field,
+            },
+          ],
+        });
+      }
+
+      res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+    } catch (error) {
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    }
+  }
+);
 
 router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<LoginDto>, res: Response) => {
   try {

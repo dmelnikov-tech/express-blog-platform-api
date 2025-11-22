@@ -33,6 +33,7 @@ export const usersService = {
   async createUser(data: CreateUserDto): Promise<CreateUserResult> {
     const existingUser: UserDocument | null = await usersRepository.findByLoginOrEmail(data.login, data.email);
     if (existingUser) {
+      //TODO: дублирование кода с auth.service
       if (existingUser.login === data.login) {
         return {
           success: false,
@@ -61,6 +62,10 @@ export const usersService = {
       email: data.email,
       passwordHash,
       createdAt: new Date().toISOString(),
+      emailConfirmation: {
+        isConfirmed: true,
+        confirmationCode: null,
+      },
     };
 
     const createdUser: UserDocument = await usersRepository.create(newUser);

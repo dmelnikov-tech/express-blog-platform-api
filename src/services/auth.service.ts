@@ -1,8 +1,11 @@
+import { randomUUID } from 'crypto';
 import { usersRepository } from '../repositories/users.repository.js';
-import { comparePassword } from '../utils/password.utils.js';
+import { comparePassword, hashPassword } from '../utils/password.utils.js';
 import type { LoginDto } from '../types/domain/auth.types.js';
-import { UserDocument } from '../types/infrastructure/user.document.types.js';
+import type { CreateUserDto, CreateUserResult, User, UserResponseDto } from '../types/domain/user.types.js';
+import type { UserDocument } from '../types/infrastructure/user.document.types.js';
 import { generateAccessToken } from '../utils/jwt.utils.js';
+import { emailService } from './email.service.js';
 
 export const authService = {
   async login(data: LoginDto): Promise<string | null> {
@@ -20,5 +23,61 @@ export const authService = {
 
     const accessToken: string = generateAccessToken(user.id);
     return accessToken;
+  },
+
+  async registration(data: CreateUserDto): Promise<CreateUserResult> {
+    const existingUser: UserDocument | null = await usersRepository.findByLoginOrEmail(data.login, data.email);
+    if (existingUser) {
+      if (existingUser.login === data.login) {
+        return {
+          success: false,
+          error: {
+            field: 'login',
+            message: 'login must be unique',
+          },
+        };
+      }
+      if (existingUser.email === data.email) {
+        return {
+          success: false,
+          error: {
+            field: 'email',
+            message: 'email must be unique',
+          },
+        };
+      }
+    }
+
+    const passwordHash = await hashPassword(data.password);
+    const confirmationCode = randomUUID();
+
+    const newUser: User = {
+      id: randomUUID(),
+      login: data.login,
+      email: data.email,
+      passwordHash,
+      createdAt: new Date().toISOString(),
+      emailConfirmation: {
+        isConfirmed: false,
+        confirmationCode,
+      },
+    };
+
+    const createdUser: UserDocument = await usersRepository.create(newUser);
+    await emailService.sendConfirmationEmail(data.email, confirmationCode);
+
+    return {
+      success: true,
+      data: this._mapUserToResponseDto(createdUser),
+    };
+  },
+
+  _mapUserToResponseDto(user: UserDocument): UserResponseDto {
+    return {
+      id: user.id,
+      login: user.login,
+      email: user.email,
+      createdAt: user.createdAt,
+    };
   },
 };
