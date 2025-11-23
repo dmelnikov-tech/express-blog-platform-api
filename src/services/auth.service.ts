@@ -1,14 +1,14 @@
 import { randomUUID } from 'crypto';
 import { usersRepository } from '../repositories/users.repository.js';
 import { comparePassword, hashPassword } from '../utils/password.utils.js';
-import type { LoginDto, EmailConfirmationResult } from '../types/domain/auth.types.js';
+import type { LoginDto, LoginResult, EmailConfirmationResult } from '../types/domain/auth.types.js';
 import type { CreateUserDto, CreateUserResult, User, UserResponseDto } from '../types/domain/user.types.js';
 import type { UserDocument } from '../types/infrastructure/user.document.types.js';
-import { generateAccessToken } from '../utils/jwt.utils.js';
+import { generateAccessToken, generateRefreshToken } from '../utils/jwt.utils.js';
 import { emailService } from './email.service.js';
 
 export const authService = {
-  async login(data: LoginDto): Promise<string | null> {
+  async login(data: LoginDto): Promise<LoginResult | null> {
     const { loginOrEmail, password } = data;
 
     const user: UserDocument | null = await usersRepository.findByLoginOrEmail(loginOrEmail, loginOrEmail); // дважды loginOrEmail передаем, чтобы не нарушать логику метода findByLoginOrEmail
@@ -22,7 +22,12 @@ export const authService = {
     }
 
     const accessToken: string = generateAccessToken(user.id);
-    return accessToken;
+    const refreshToken: string = generateRefreshToken(user.id);
+
+    return {
+      accessToken,
+      refreshToken,
+    };
   },
 
   async registration(data: CreateUserDto): Promise<CreateUserResult> {
@@ -65,8 +70,8 @@ export const authService = {
       },
     };
 
-    await emailService.sendConfirmationEmail(data.email, confirmationCode);
     const createdUser: UserDocument = await usersRepository.create(newUser);
+    await emailService.sendConfirmationEmail(data.email, confirmationCode);
 
     return {
       success: true,

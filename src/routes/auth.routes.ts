@@ -100,14 +100,21 @@ router.post(
 router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<LoginDto>, res: Response) => {
   try {
     const { loginOrEmail, password } = req.body;
-    const accessToken: string | null = await authService.login({ loginOrEmail, password });
+    const tokens = await authService.login({ loginOrEmail, password });
 
-    if (!accessToken) {
+    if (!tokens) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
     }
 
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней //TODO: может время надо в константу или конфиг какой-то запихнуть, чтоб не дублировать
+    });
+
     res.status(HTTP_STATUSES.OK).send({
-      accessToken,
+      accessToken: tokens.accessToken,
     });
   } catch (error) {
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);

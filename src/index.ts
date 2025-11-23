@@ -1,4 +1,5 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import blogsRoutes from './routes/blogs.routes.js';
 import postsRoutes from './routes/posts.routes.js';
@@ -12,6 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(cookieParser());
 app.use('/blogs', blogsRoutes);
 app.use('/posts', postsRoutes);
 app.use('/users', usersRoutes);
