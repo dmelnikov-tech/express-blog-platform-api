@@ -1,13 +1,13 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
-import blogsRoutes from './routes/blogs.routes.js';
-import postsRoutes from './routes/posts.routes.js';
-import usersRoutes from './routes/users.routes.js';
-import authRoutes from './routes/auth.routes.js';
-import commentsRoutes from './routes/comments.routes.js';
-import testingRoutes from './routes/testing.routes.js';
-import { connectToDatabase, closeDatabaseConnection } from './db/mongodb.js';
+import blogsRoutes from './presentation/routes/blogs.routes.js';
+import postsRoutes from './presentation/routes/posts.routes.js';
+import usersRoutes from './presentation/routes/users.routes.js';
+import authRoutes from './presentation/routes/auth.routes.js';
+import commentsRoutes from './presentation/routes/comments.routes.js';
+import testingRoutes from './presentation/routes/testing.routes.js';
+import { connectToDatabase, closeDatabaseConnection } from './infrastructure/database/mongodb.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,7 +33,6 @@ async function startServer() {
   }
 }
 
-// Graceful shutdown
 process.on('SIGINT', async () => {
   await closeDatabaseConnection();
   process.exit(0);
@@ -44,6 +43,3 @@ process.on('SIGTERM', async () => {
 });
 
 startServer();
-
-//TODO: тесты сделать
-//TODO: сваггер запилить
