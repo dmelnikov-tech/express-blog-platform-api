@@ -13,6 +13,8 @@ import {
 } from '../middlewares/validation/auth.validation.js';
 import { createUserValidationMiddleware } from '../middlewares/validation/user.validation.js';
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
+import { REFRESH_TOKEN_COOKIE_OPTIONS } from '../utils/cookie.utils.js';
+import { sendErrorResponse } from '../utils/response.utils.js';
 
 const router = Router();
 
@@ -28,15 +30,8 @@ router.post(
         email,
       });
 
-      if (!createResult.success) {
-        return res.status(HTTP_STATUSES.BAD_REQUEST).send({
-          errorsMessages: [
-            {
-              message: createResult.error.message,
-              field: createResult.error.field,
-            },
-          ],
-        });
+      if (sendErrorResponse(res, createResult)) {
+        return;
       }
 
       res.sendStatus(HTTP_STATUSES.NO_CONTENT);
@@ -54,17 +49,9 @@ router.post(
       const { email } = req.body;
       const result: EmailConfirmationResult = await authService.resendConfirmationEmail(email);
 
-      if (!result.success) {
-        return res.status(HTTP_STATUSES.BAD_REQUEST).send({
-          errorsMessages: [
-            {
-              message: result.error.message,
-              field: result.error.field,
-            },
-          ],
-        });
+      if (sendErrorResponse(res, result)) {
+        return;
       }
-
       res.sendStatus(HTTP_STATUSES.NO_CONTENT);
     } catch (error) {
       res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
@@ -80,15 +67,8 @@ router.post(
       const { code } = req.body;
       const result: EmailConfirmationResult = await authService.confirmRegistration(code);
 
-      if (!result.success) {
-        return res.status(HTTP_STATUSES.BAD_REQUEST).send({
-          errorsMessages: [
-            {
-              message: result.error.message,
-              field: result.error.field,
-            },
-          ],
-        });
+      if (sendErrorResponse(res, result)) {
+        return;
       }
 
       res.sendStatus(HTTP_STATUSES.NO_CONTENT);
@@ -107,12 +87,7 @@ router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<Log
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
     }
 
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('refreshToken', tokens.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
     res.status(HTTP_STATUSES.OK).send({
       accessToken: tokens.accessToken,
@@ -130,7 +105,7 @@ router.post('/logout', async (req: Request, res: Response) => {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
     }
 
-    const success = await authService.logout(refreshToken);
+    const success: boolean = await authService.logout(refreshToken);
 
     if (!success) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
@@ -156,12 +131,7 @@ router.post('/refresh-token', async (req: Request, res: Response) => {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
     }
 
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('refreshToken', tokens.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
     res.status(HTTP_STATUSES.OK).send({
       accessToken: tokens.accessToken,
@@ -192,4 +162,3 @@ router.get('/me', bearerAuthMiddleware, async (req: Request, res: Response) => {
 });
 
 export default router;
-

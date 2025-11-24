@@ -6,21 +6,13 @@ import type { PostDocument } from '../../infrastructure/types/post.document.type
 import { postsRepository } from '../../infrastructure/database/repositories/posts.repository.js';
 import { blogsService } from './blogs.service.js';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
+import { createPaginatedResponse } from '../../shared/utils/pagination.utils.js';
 
 export const postsService = {
   async getPosts(params: PaginationSortParams): Promise<PaginatedSortedResponse<PostResponseDto>> {
     const { items, totalCount } = await postsRepository.find(params);
     const posts = this._mapPostsToResponseDto(items);
-
-    const pagesCount = Math.ceil(totalCount / params.pageSize);
-
-    return {
-      pagesCount,
-      page: params.pageNumber,
-      pageSize: params.pageSize,
-      totalCount,
-      items: posts,
-    };
+    return createPaginatedResponse<PostResponseDto>(posts, totalCount, params);
   },
 
   async getPostsByBlogId(
@@ -29,16 +21,7 @@ export const postsService = {
   ): Promise<PaginatedSortedResponse<PostResponseDto>> {
     const { items, totalCount } = await postsRepository.findByBlogId(blogId, params);
     const posts = this._mapPostsToResponseDto(items);
-
-    const pagesCount = Math.ceil(totalCount / params.pageSize);
-
-    return {
-      pagesCount,
-      page: params.pageNumber,
-      pageSize: params.pageSize,
-      totalCount,
-      items: posts,
-    };
+    return createPaginatedResponse<PostResponseDto>(posts, totalCount, params);
   },
 
   async getPostById(id: string): Promise<PostResponseDto | null> {
@@ -95,4 +78,3 @@ export const postsService = {
     return posts.map(post => this._mapPostToResponseDto(post));
   },
 };
-

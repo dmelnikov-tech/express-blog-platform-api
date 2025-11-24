@@ -7,8 +7,15 @@ import type { CreateUserDto, CreateUserResult, UserResponseDto } from '../dto/us
 import type { LoginResult, EmailConfirmationResult } from '../../domain/types/auth.types.js';
 import type { User } from '../../domain/entities/user.entity.js';
 import type { UserDocument } from '../../infrastructure/types/user.document.types.js';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../infrastructure/external/jwt/jwt.provider.js';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from '../../infrastructure/external/jwt/jwt.provider.js';
 import { emailService } from '../../infrastructure/external/email/email.provider.js';
+import { REFRESH_TOKEN_EXPIRATION_MS, CONFIRMATION_CODE_EXPIRATION_MS } from '../../shared/constants/auth.constants.js';
+import { USER_ERROR_MESSAGES } from '../../shared/constants/user-messages.constants.js';
+import { checkUserUniqueness } from '../../shared/utils/user-uniqueness.utils.js';
 
 export const authService = {
   async login(data: LoginDto): Promise<LoginResult | null> {
@@ -28,7 +35,7 @@ export const authService = {
     const refreshToken: string = generateRefreshToken(user.id);
 
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
     await refreshTokensRepository.create({
       userId: user.id,
       token: refreshToken,
@@ -63,7 +70,7 @@ export const authService = {
       const accessToken: string = generateAccessToken(payload.userId);
       const refreshToken: string = generateRefreshToken(payload.userId);
 
-      const newExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const newExpiresAt = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
       await refreshTokensRepository.create({
         userId: payload.userId,
         token: refreshToken,
@@ -86,37 +93,21 @@ export const authService = {
     if (!storedToken) {
       return false;
     }
-    
+
     await refreshTokensRepository.deleteByToken(token);
     return true;
   },
 
   async registration(data: CreateUserDto): Promise<CreateUserResult> {
     const existingUser: UserDocument | null = await usersRepository.findByLoginOrEmail(data.login, data.email);
-    if (existingUser) {
-      if (existingUser.login === data.login) {
-        return {
-          success: false,
-          error: {
-            field: 'login',
-            message: 'User with this login already exists',
-          },
-        };
-      }
-      if (existingUser.email === data.email) {
-        return {
-          success: false,
-          error: {
-            field: 'email',
-            message: 'User with this email already exists',
-          },
-        };
-      }
+    const uniquenessError = checkUserUniqueness(existingUser, data.login, data.email);
+    if (uniquenessError) {
+      return uniquenessError;
     }
 
     const passwordHash = await hashPassword(data.password);
     const confirmationCode = randomUUID();
-    const confirmationCodeExpiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const confirmationCodeExpiredAt = new Date(Date.now() + CONFIRMATION_CODE_EXPIRATION_MS).toISOString();
 
     const newUser: User = {
       id: randomUUID(),
@@ -148,7 +139,7 @@ export const authService = {
         success: false,
         error: {
           field: 'email',
-          message: 'User with this email not found',
+          message: USER_ERROR_MESSAGES.EMAIL_NOT_FOUND,
         },
       };
     }
@@ -158,13 +149,13 @@ export const authService = {
         success: false,
         error: {
           field: 'email',
-          message: 'User with this email already confirmed',
+          message: USER_ERROR_MESSAGES.EMAIL_ALREADY_CONFIRMED,
         },
       };
     }
 
     const newConfirmationCode = randomUUID();
-    const confirmationCodeExpiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const confirmationCodeExpiredAt = new Date(Date.now() + CONFIRMATION_CODE_EXPIRATION_MS).toISOString();
     await usersRepository.updateConfirmationCode(email, newConfirmationCode, confirmationCodeExpiredAt);
     await emailService.sendConfirmationEmail(email, newConfirmationCode);
 
@@ -179,7 +170,7 @@ export const authService = {
         success: false,
         error: {
           field: 'code',
-          message: 'Invalid confirmation code',
+          message: USER_ERROR_MESSAGES.INVALID_CONFIRMATION_CODE,
         },
       };
     }
@@ -193,7 +184,7 @@ export const authService = {
           success: false,
           error: {
             field: 'code',
-            message: 'Confirmation code expired',
+            message: USER_ERROR_MESSAGES.CONFIRMATION_CODE_EXPIRED,
           },
         };
       }
@@ -212,4 +203,3 @@ export const authService = {
     };
   },
 };
-

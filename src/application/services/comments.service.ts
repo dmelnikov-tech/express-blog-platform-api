@@ -7,6 +7,7 @@ import { commentsRepository } from '../../infrastructure/database/repositories/c
 import { usersRepository } from '../../infrastructure/database/repositories/users.repository.js';
 import { postsRepository } from '../../infrastructure/database/repositories/posts.repository.js';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
+import { createPaginatedResponse } from '../../shared/utils/pagination.utils.js';
 
 export const commentsService = {
   async getCommentsByPostId(
@@ -20,16 +21,7 @@ export const commentsService = {
 
     const { items, totalCount } = await commentsRepository.findByPostId(postId, params);
     const comments = this._mapCommentsToResponseDto(items);
-
-    const pagesCount = Math.ceil(totalCount / params.pageSize);
-
-    return {
-      pagesCount,
-      page: params.pageNumber,
-      pageSize: params.pageSize,
-      totalCount,
-      items: comments,
-    };
+    return createPaginatedResponse<CommentResponseDto>(comments, totalCount, params);
   },
 
   async getCommentById(id: string): Promise<CommentResponseDto | null> {
@@ -105,4 +97,3 @@ export const commentsService = {
     return comments.map(comment => this._mapCommentToResponseDto(comment));
   },
 };
-
