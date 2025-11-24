@@ -39,7 +39,7 @@ router.get('/', async (req: RequestWithQuery<PaginationSortQuery>, res: Response
 
 router.get('/:id', async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id }: ParamsId = req.params;
     const blog: BlogResponseDto | null = await blogsService.getBlogById(id);
 
     if (!blog) {
@@ -58,7 +58,7 @@ router.post(
   blogValidationMiddleware,
   async (req: RequestWithBody<CreateBlogDto>, res: Response) => {
     try {
-      const { name, description, websiteUrl } = req.body;
+      const { name, description, websiteUrl }: CreateBlogDto = req.body;
       const blog: BlogResponseDto = await blogsService.createBlog({
         name,
         description,
@@ -77,8 +77,8 @@ router.put(
   blogValidationMiddleware,
   async (req: RequestWithParamsAndBody<ParamsId, UpdateBlogDto>, res: Response) => {
     try {
-      const { id } = req.params;
-      const { name, description, websiteUrl } = req.body;
+      const { id }: ParamsId = req.params;
+      const { name, description, websiteUrl }: UpdateBlogDto = req.body;
       const updateResult: boolean = await blogsService.updateBlog(id, {
         name,
         description,
@@ -98,7 +98,7 @@ router.put(
 
 router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id }: ParamsId = req.params;
     const deleteResult: boolean = await blogsService.deleteBlog(id);
 
     if (!deleteResult) {
@@ -115,7 +115,7 @@ router.get(
   '/:blogId/posts',
   async (req: RequestWithParamsAndQuery<ParamsBlogId, PaginationSortQuery>, res: Response) => {
     try {
-      const { blogId } = req.params;
+      const { blogId }: ParamsBlogId = req.params;
       const blog: BlogResponseDto | null = await blogsService.getBlogById(blogId);
 
       if (!blog) {
@@ -140,8 +140,8 @@ router.post(
   createPostForBlogValidationMiddleware,
   async (req: RequestWithParamsAndBody<ParamsBlogId, CreatePostByBlogIdDto>, res: Response) => {
     try {
-      const { blogId } = req.params;
-      const { title, shortDescription, content } = req.body;
+      const { blogId }: ParamsBlogId = req.params;
+      const { title, shortDescription, content }: CreatePostByBlogIdDto = req.body;
 
       const post: PostResponseDto = await postsService.createPost({
         title,

@@ -1,4 +1,4 @@
-import { DeleteResult, SortDirection } from 'mongodb';
+import { DeleteResult, SortDirection, UpdateResult } from 'mongodb';
 import type { Post } from '../../../domain/entities/post.entity.js';
 import type { PostDocument } from '../../types/post.document.types.js';
 import type { PaginationSortParams } from '../../../domain/types/pagination.types.js';
@@ -16,9 +16,9 @@ export const postsRepository = {
     const collection = getCollection();
 
     const sortDirection: SortDirection = params.sortDirection === 'asc' ? 1 : -1;
-    const skip = (params.pageNumber - 1) * params.pageSize;
+    const skip: number = (params.pageNumber - 1) * params.pageSize;
 
-    const [items, totalCount] = await Promise.all([
+    const [items, totalCount]: [PostDocument[], number] = await Promise.all([
       collection
         .find({})
         .sort({ [params.sortBy]: sortDirection })
@@ -41,11 +41,11 @@ export const postsRepository = {
     const collection = getCollection();
 
     const sortDirection: SortDirection = params.sortDirection === 'asc' ? 1 : -1;
-    const skip = (params.pageNumber - 1) * params.pageSize;
+    const skip: number = (params.pageNumber - 1) * params.pageSize;
 
-    const filter = { blogId };
+    const filter: { blogId: string } = { blogId };
 
-    const [items, totalCount] = await Promise.all([
+    const [items, totalCount]: [PostDocument[], number] = await Promise.all([
       collection
         .find(filter)
         .sort({ [params.sortBy]: sortDirection })

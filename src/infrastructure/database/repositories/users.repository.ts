@@ -1,4 +1,4 @@
-import { DeleteResult, SortDirection } from 'mongodb';
+import { DeleteResult, SortDirection, UpdateResult } from 'mongodb';
 import type { User } from '../../../domain/entities/user.entity.js';
 import type { UserDocument } from '../../types/user.document.types.js';
 import type { UserFilter } from '../../types/user-filter.types.js';
@@ -28,9 +28,9 @@ export const usersRepository = {
     }
 
     const sortDirection: SortDirection = params.sortDirection === 'asc' ? 1 : -1;
-    const skip = (params.pageNumber - 1) * params.pageSize;
+    const skip: number = (params.pageNumber - 1) * params.pageSize;
 
-    const [items, totalCount] = await Promise.all([
+    const [items, totalCount]: [UserDocument[], number] = await Promise.all([
       collection
         .find(filter)
         .sort({ [params.sortBy]: sortDirection })
@@ -83,7 +83,7 @@ export const usersRepository = {
     confirmationCodeExpiredAt: string
   ): Promise<boolean> {
     const collection = getCollection();
-    const result = await collection.updateOne(
+    const result: UpdateResult = await collection.updateOne(
       { email },
       {
         $set: {
@@ -97,7 +97,7 @@ export const usersRepository = {
 
   async confirmUser(confirmationCode: string): Promise<boolean> {
     const collection = getCollection();
-    const result = await collection.updateOne(
+    const result: UpdateResult = await collection.updateOne(
       { 'confirmationInfo.confirmationCode': confirmationCode },
       {
         $set: {

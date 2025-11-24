@@ -3,8 +3,8 @@ import { authService } from '../../application/services/auth.service.js';
 import { usersService } from '../../application/services/users.service.js';
 import { HTTP_STATUSES } from '../../shared/constants/http-statuses.js';
 import type { LoginDto } from '../../application/dto/auth.dto.js';
-import type { EmailConfirmationResult } from '../../domain/types/auth.types.js';
-import type { CreateUserDto, CreateUserResult } from '../../application/dto/user.dto.js';
+import type { EmailConfirmationResult, LoginResult } from '../../domain/types/auth.types.js';
+import type { CreateUserDto, CreateUserResult, UserResponseDto } from '../../application/dto/user.dto.js';
 import { RequestWithBody } from '../../shared/types/express-request.types.js';
 import {
   loginValidationMiddleware,
@@ -23,7 +23,7 @@ router.post(
   createUserValidationMiddleware,
   async (req: RequestWithBody<CreateUserDto>, res: Response) => {
     try {
-      const { login, password, email } = req.body;
+      const { login, password, email }: CreateUserDto = req.body;
       const createResult: CreateUserResult = await authService.registration({
         login,
         password,
@@ -46,7 +46,7 @@ router.post(
   emailValidationMiddleware,
   async (req: RequestWithBody<{ email: string }>, res: Response) => {
     try {
-      const { email } = req.body;
+      const { email }: { email: string } = req.body;
       const result: EmailConfirmationResult = await authService.resendConfirmationEmail(email);
 
       if (sendErrorResponse(res, result)) {
@@ -64,7 +64,7 @@ router.post(
   confirmationCodeValidationMiddleware,
   async (req: RequestWithBody<{ code: string }>, res: Response) => {
     try {
-      const { code } = req.body;
+      const { code }: { code: string } = req.body;
       const result: EmailConfirmationResult = await authService.confirmRegistration(code);
 
       if (sendErrorResponse(res, result)) {
@@ -80,8 +80,8 @@ router.post(
 
 router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<LoginDto>, res: Response) => {
   try {
-    const { loginOrEmail, password } = req.body;
-    const tokens = await authService.login({ loginOrEmail, password });
+    const { loginOrEmail, password }: LoginDto = req.body;
+    const tokens: LoginResult | null = await authService.login({ loginOrEmail, password });
 
     if (!tokens) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
@@ -99,7 +99,7 @@ router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<Log
 
 router.post('/logout', async (req: Request, res: Response) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken: string | undefined = req.cookies.refreshToken;
 
     if (!refreshToken) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
@@ -119,13 +119,13 @@ router.post('/logout', async (req: Request, res: Response) => {
 
 router.post('/refresh-token', async (req: Request, res: Response) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken: string | undefined = req.cookies.refreshToken;
 
     if (!refreshToken) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
     }
 
-    const tokens = await authService.refreshToken(refreshToken);
+    const tokens: LoginResult | null = await authService.refreshToken(refreshToken);
 
     if (!tokens) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
@@ -143,9 +143,9 @@ router.post('/refresh-token', async (req: Request, res: Response) => {
 
 router.get('/me', bearerAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId;
+    const userId: string = req.userId;
 
-    const user = await usersService.getUserById(userId);
+    const user: UserResponseDto | null = await usersService.getUserById(userId);
 
     if (!user) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);

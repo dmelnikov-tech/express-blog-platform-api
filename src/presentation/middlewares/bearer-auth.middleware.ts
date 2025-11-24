@@ -4,13 +4,13 @@ import { verifyAccessToken } from '../../infrastructure/external/jwt/jwt.provide
 import type { AuthTokenPayload } from '../../domain/types/auth.types.js';
 
 export const bearerAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+  const authHeader: string | undefined = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
   }
 
-  const token = authHeader.split(' ')[1];
+  const token: string = authHeader.split(' ')[1];
 
   try {
     const payload: AuthTokenPayload = verifyAccessToken(token);

@@ -19,8 +19,8 @@ export const commentsService = {
       throw new Error(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
-    const { items, totalCount } = await commentsRepository.findByPostId(postId, params);
-    const comments = this._mapCommentsToResponseDto(items);
+    const { items, totalCount }: { items: CommentDocument[]; totalCount: number } = await commentsRepository.findByPostId(postId, params);
+    const comments: CommentResponseDto[] = this._mapCommentsToResponseDto(items);
     return createPaginatedResponse<CommentResponseDto>(comments, totalCount, params);
   },
 

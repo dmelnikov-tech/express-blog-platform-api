@@ -35,7 +35,7 @@ router.post(
   createUserValidationMiddleware,
   async (req: RequestWithBody<CreateUserDto>, res: Response) => {
     try {
-      const { login, password, email } = req.body;
+      const { login, password, email }: CreateUserDto = req.body;
       const createResult: CreateUserResult = await usersService.createUser({
         login,
         password,
@@ -62,7 +62,7 @@ router.post(
 
 router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id }: ParamsId = req.params;
     const deleteResult: boolean = await usersService.deleteUser(id);
 
     if (!deleteResult) {

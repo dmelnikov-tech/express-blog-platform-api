@@ -18,11 +18,11 @@ export const commentsRepository = {
     const collection = getCollection();
 
     const sortDirection: SortDirection = params.sortDirection === 'asc' ? 1 : -1;
-    const skip = (params.pageNumber - 1) * params.pageSize;
+    const skip: number = (params.pageNumber - 1) * params.pageSize;
 
-    const filter = { postId };
+    const filter: { postId: string } = { postId };
 
-    const [items, totalCount] = await Promise.all([
+    const [items, totalCount]: [CommentDocument[], number] = await Promise.all([
       collection
         .find(filter)
         .sort({ [params.sortBy]: sortDirection })

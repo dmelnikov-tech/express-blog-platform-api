@@ -10,8 +10,8 @@ import { createPaginatedResponse } from '../../shared/utils/pagination.utils.js'
 
 export const postsService = {
   async getPosts(params: PaginationSortParams): Promise<PaginatedSortedResponse<PostResponseDto>> {
-    const { items, totalCount } = await postsRepository.find(params);
-    const posts = this._mapPostsToResponseDto(items);
+    const { items, totalCount }: { items: PostDocument[]; totalCount: number } = await postsRepository.find(params);
+    const posts: PostResponseDto[] = this._mapPostsToResponseDto(items);
     return createPaginatedResponse<PostResponseDto>(posts, totalCount, params);
   },
 
@@ -19,8 +19,8 @@ export const postsService = {
     blogId: string,
     params: PaginationSortParams
   ): Promise<PaginatedSortedResponse<PostResponseDto>> {
-    const { items, totalCount } = await postsRepository.findByBlogId(blogId, params);
-    const posts = this._mapPostsToResponseDto(items);
+    const { items, totalCount }: { items: PostDocument[]; totalCount: number } = await postsRepository.findByBlogId(blogId, params);
+    const posts: PostResponseDto[] = this._mapPostsToResponseDto(items);
     return createPaginatedResponse<PostResponseDto>(posts, totalCount, params);
   },
 

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { HTTP_STATUSES } from '../../shared/constants/http-statuses.js';
 
 export const basicAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+  const authHeader: string | undefined = req.headers.authorization;
 
   if (authHeader === 'Basic YWRtaW46cXdlcnR5') {
     return next();

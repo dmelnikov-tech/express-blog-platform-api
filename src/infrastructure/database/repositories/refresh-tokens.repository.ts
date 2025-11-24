@@ -1,4 +1,4 @@
-import { DeleteResult } from 'mongodb';
+import { DeleteResult, UpdateResult } from 'mongodb';
 import type { RefreshToken } from '../../../domain/entities/refresh-token.entity.js';
 import type { RefreshTokenDocument } from '../../types/refresh-token.document.types.js';
 import { getDatabase } from '../mongodb.js';
@@ -20,20 +20,20 @@ export const refreshTokensRepository = {
 
   async deleteByToken(token: string): Promise<boolean> {
     const collection = getCollection();
-    const result = await collection.deleteOne({ token });
+    const result: DeleteResult = await collection.deleteOne({ token });
     return result.deletedCount > 0;
   },
 
   async deleteByUserId(userId: string): Promise<number> {
     const collection = getCollection();
-    const result = await collection.deleteMany({ userId });
+    const result: DeleteResult = await collection.deleteMany({ userId });
     return result.deletedCount;
   },
 
   async deleteExpiredTokens(): Promise<number> {
     const collection = getCollection();
-    const now = new Date().toISOString();
-    const result = await collection.deleteMany({ expiresAt: { $lt: now } });
+    const now: string = new Date().toISOString();
+    const result: DeleteResult = await collection.deleteMany({ expiresAt: { $lt: now } });
     return result.deletedCount;
   },
 

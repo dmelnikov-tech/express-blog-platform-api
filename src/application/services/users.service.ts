@@ -10,7 +10,7 @@ import { checkUserUniqueness } from '../../shared/utils/user-uniqueness.utils.js
 
 export const usersService = {
   async getUsers(params: UserPaginationSortParams): Promise<PaginatedSortedResponse<UserResponseDto>> {
-    const { items, totalCount } = await usersRepository.find(params);
+    const { items, totalCount }: { items: UserDocument[]; totalCount: number } = await usersRepository.find(params);
     const users: UserResponseDto[] = this._mapUsersToResponseDto(items);
     return createPaginatedResponse<UserResponseDto>(users, totalCount, params);
   },

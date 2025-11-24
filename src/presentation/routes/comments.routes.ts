@@ -11,7 +11,7 @@ const router = Router();
 
 router.get('/:id', async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id }: ParamsId = req.params;
     const comment: CommentResponseDto | null = await commentsService.getCommentById(id);
 
     if (!comment) {
@@ -30,9 +30,10 @@ router.put(
   createCommentValidationMiddleware,
   async (req: RequestWithParamsAndBody<ParamsId, UpdateCommentDto>, res: Response) => {
     try {
-      const { id } = req.params;
-      const { content } = req.body;
-      const updateResult: boolean = await commentsService.updateComment(id, req.userId, { content });
+      const { id }: ParamsId = req.params;
+      const { content }: UpdateCommentDto = req.body;
+      const userId: string = req.userId;
+      const updateResult: boolean = await commentsService.updateComment(id, userId, { content });
 
       if (!updateResult) {
         return res.sendStatus(HTTP_STATUSES.NOT_FOUND);
@@ -55,8 +56,9 @@ router.put(
 
 router.delete('/:id', bearerAuthMiddleware, async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
-    const { id } = req.params;
-    const deleteResult: boolean = await commentsService.deleteComment(id, req.userId);
+    const { id }: ParamsId = req.params;
+    const userId: string = req.userId;
+    const deleteResult: boolean = await commentsService.deleteComment(id, userId);
 
     if (!deleteResult) {
       return res.sendStatus(HTTP_STATUSES.NOT_FOUND);

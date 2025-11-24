@@ -5,7 +5,7 @@ import { HTTP_STATUSES } from '../../shared/constants/http-statuses.js';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
 import type { PostResponseDto, CreatePostDto, UpdatePostDto } from '../../application/dto/post.dto.js';
 import type { CommentResponseDto, CreateCommentDto } from '../../application/dto/comment.dto.js';
-import type { PaginatedSortedResponse, PaginationSortQuery } from '../../domain/types/pagination.types.js';
+import type { PaginatedSortedResponse, PaginationSortQuery, PaginationSortParams } from '../../domain/types/pagination.types.js';
 import {
   RequestWithQuery,
   RequestWithParams,
@@ -25,7 +25,7 @@ const router = Router();
 
 router.get('/', async (req: RequestWithQuery<PaginationSortQuery>, res: Response) => {
   try {
-    const paginationParams = getPaginationSortParams(req.query, 'posts');
+    const paginationParams: PaginationSortParams = getPaginationSortParams(req.query, 'posts');
     const posts: PaginatedSortedResponse<PostResponseDto> = await postsService.getPosts(paginationParams);
     res.status(HTTP_STATUSES.OK).send(posts);
   } catch (error) {
@@ -35,7 +35,7 @@ router.get('/', async (req: RequestWithQuery<PaginationSortQuery>, res: Response
 
 router.get('/:id', async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id }: ParamsId = req.params;
     const post: PostResponseDto | null = await postsService.getPostById(id);
 
     if (!post) {
@@ -54,7 +54,7 @@ router.post(
   postValidationMiddleware,
   async (req: RequestWithBody<CreatePostDto>, res: Response) => {
     try {
-      const { title, shortDescription, content, blogId } = req.body;
+      const { title, shortDescription, content, blogId }: CreatePostDto = req.body;
       const post: PostResponseDto = await postsService.createPost({
         title,
         shortDescription,
@@ -77,8 +77,8 @@ router.put(
   postValidationMiddleware,
   async (req: RequestWithParamsAndBody<ParamsId, UpdatePostDto>, res: Response) => {
     try {
-      const { id } = req.params;
-      const { title, shortDescription, content, blogId } = req.body;
+      const { id }: ParamsId = req.params;
+      const { title, shortDescription, content, blogId }: UpdatePostDto = req.body;
       const updateResult: boolean = await postsService.updatePost(id, {
         title,
         shortDescription,
@@ -102,7 +102,7 @@ router.put(
 
 router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id }: ParamsId = req.params;
     const deleteResult: boolean = await postsService.deletePost(id);
 
     if (!deleteResult) {
@@ -119,8 +119,8 @@ router.get(
   '/:postId/comments',
   async (req: RequestWithParamsAndQuery<ParamsPostId, PaginationSortQuery>, res: Response) => {
     try {
-      const { postId } = req.params;
-      const paginationParams = getPaginationSortParams(req.query, 'comments');
+      const { postId }: ParamsPostId = req.params;
+      const paginationParams: PaginationSortParams = getPaginationSortParams(req.query, 'comments');
       const comments: PaginatedSortedResponse<CommentResponseDto> = await commentsService.getCommentsByPostId(
         postId,
         paginationParams
@@ -141,9 +141,10 @@ router.post(
   createCommentValidationMiddleware,
   async (req: RequestWithParamsAndBody<ParamsPostId, CreateCommentDto>, res: Response) => {
     try {
-      const { postId } = req.params;
-      const { content } = req.body;
-      const comment: CommentResponseDto = await commentsService.createComment(postId, req.userId, {
+      const { postId }: ParamsPostId = req.params;
+      const { content }: CreateCommentDto = req.body;
+      const userId: string = req.userId;
+      const comment: CommentResponseDto = await commentsService.createComment(postId, userId, {
         content,
       });
       res.status(HTTP_STATUSES.CREATED).send(comment);

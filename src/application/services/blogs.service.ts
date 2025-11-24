@@ -12,8 +12,8 @@ import { createPaginatedResponse } from '../../shared/utils/pagination.utils.js'
 
 export const blogsService = {
   async getBlogs(params: BlogPaginationSortParams): Promise<PaginatedSortedResponse<BlogResponseDto>> {
-    const { items, totalCount } = await blogsRepository.find(params);
-    const blogs = this._mapBlogsToResponseDto(items);
+    const { items, totalCount }: { items: BlogDocument[]; totalCount: number } = await blogsRepository.find(params);
+    const blogs: BlogResponseDto[] = this._mapBlogsToResponseDto(items);
     return createPaginatedResponse<BlogResponseDto>(blogs, totalCount, params);
   },
 

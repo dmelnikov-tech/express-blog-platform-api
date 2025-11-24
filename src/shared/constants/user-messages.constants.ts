@@ -6,4 +6,3 @@ export const USER_ERROR_MESSAGES = {
   INVALID_CONFIRMATION_CODE: 'Invalid confirmation code',
   CONFIRMATION_CODE_EXPIRED: 'Confirmation code expired',
 };
-

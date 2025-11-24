@@ -1,4 +1,4 @@
-import { DeleteResult, SortDirection } from 'mongodb';
+import { DeleteResult, SortDirection, UpdateResult } from 'mongodb';
 import type { Blog } from '../../../domain/entities/blog.entity.js';
 import type { BlogDocument } from '../../types/blog.document.types.js';
 import type { BlogFilter } from '../../types/blog-filter.types.js';
@@ -19,9 +19,9 @@ export const blogsRepository = {
     const filter: BlogFilter = params.searchNameTerm ? { name: { $regex: params.searchNameTerm, $options: 'i' } } : {};
 
     const sortDirection: SortDirection = params.sortDirection === 'asc' ? 1 : -1;
-    const skip = (params.pageNumber - 1) * params.pageSize;
+    const skip: number = (params.pageNumber - 1) * params.pageSize;
 
-    const [items, totalCount] = await Promise.all([
+    const [items, totalCount]: [BlogDocument[], number] = await Promise.all([
       collection
         .find(filter)
         .sort({ [params.sortBy]: sortDirection })
