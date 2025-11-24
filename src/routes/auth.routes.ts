@@ -121,6 +121,55 @@ router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<Log
   }
 });
 
+router.post('/logout', async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
+    }
+
+    const success = await authService.logout(refreshToken);
+
+    if (!success) {
+      return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
+    }
+
+    res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+  } catch (error) {
+    res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+  }
+});
+
+router.post('/refresh-token', async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
+    }
+
+    const tokens = await authService.refreshToken(refreshToken);
+
+    if (!tokens) {
+      return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
+    }
+
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+    });
+
+    res.status(HTTP_STATUSES.OK).send({
+      accessToken: tokens.accessToken,
+    });
+  } catch (error) {
+    res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+  }
+});
+
 router.get('/me', bearerAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.userId;

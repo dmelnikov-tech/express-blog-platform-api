@@ -1,10 +1,11 @@
 import { randomUUID } from 'crypto';
 import { usersRepository } from '../repositories/users.repository.js';
+import { refreshTokensRepository } from '../repositories/refresh-tokens.repository.js';
 import { comparePassword, hashPassword } from '../utils/password.utils.js';
 import type { LoginDto, LoginResult, EmailConfirmationResult } from '../types/domain/auth.types.js';
 import type { CreateUserDto, CreateUserResult, User, UserResponseDto } from '../types/domain/user.types.js';
 import type { UserDocument } from '../types/infrastructure/user.document.types.js';
-import { generateAccessToken, generateRefreshToken } from '../utils/jwt.utils.js';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.utils.js';
 import { emailService } from './email.service.js';
 
 export const authService = {
@@ -24,10 +25,68 @@ export const authService = {
     const accessToken: string = generateAccessToken(user.id);
     const refreshToken: string = generateRefreshToken(user.id);
 
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 дней
+    await refreshTokensRepository.create({
+      userId: user.id,
+      token: refreshToken,
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+    });
+
     return {
       accessToken,
       refreshToken,
     };
+  },
+
+  async refreshToken(token: string): Promise<LoginResult | null> {
+    try {
+      const storedToken = await refreshTokensRepository.findByToken(token);
+      if (!storedToken) {
+        return null;
+      }
+
+      const expiresAt = new Date(storedToken.expiresAt);
+      const now = new Date();
+      if (now > expiresAt) {
+        await refreshTokensRepository.deleteByToken(token);
+        return null;
+      }
+
+      const payload = verifyRefreshToken(token);
+
+      await refreshTokensRepository.deleteByToken(token);
+
+      const accessToken: string = generateAccessToken(payload.userId);
+      const refreshToken: string = generateRefreshToken(payload.userId);
+
+      const newExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 дней
+      await refreshTokensRepository.create({
+        userId: payload.userId,
+        token: refreshToken,
+        createdAt: now.toISOString(),
+        expiresAt: newExpiresAt.toISOString(),
+      });
+
+      return {
+        accessToken,
+        refreshToken,
+      };
+    } catch (error) {
+      await refreshTokensRepository.deleteByToken(token);
+      return null;
+    }
+  },
+
+  async logout(token: string): Promise<boolean> {
+    const storedToken = await refreshTokensRepository.findByToken(token);
+    if (!storedToken) {
+      return false;
+    }
+    
+    await refreshTokensRepository.deleteByToken(token);
+    return true;
   },
 
   async registration(data: CreateUserDto): Promise<CreateUserResult> {

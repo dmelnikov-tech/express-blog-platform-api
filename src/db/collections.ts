@@ -3,4 +3,5 @@ export const COLLECTIONS = {
   POSTS: 'posts',
   USERS: 'users',
   COMMENTS: 'comments',
+  REFRESH_TOKENS: 'refreshTokens',
 };
