@@ -14,6 +14,7 @@ import {
 import { createUserValidationMiddleware } from '../middlewares/validation/user.validation.js';
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
 import { refreshAuthMiddleware } from '../middlewares/refresh-auth.middleware.js';
+import { createRateLimitMiddleware } from '../middlewares/rate-limit.middleware.js';
 import { REFRESH_TOKEN_COOKIE_OPTIONS } from '../utils/cookie.utils.js';
 import { sendErrorResponse } from '../utils/response.utils.js';
 
@@ -21,6 +22,7 @@ const router = Router();
 
 router.post(
   '/registration',
+  createRateLimitMiddleware('/registration'),
   createUserValidationMiddleware,
   async (req: RequestWithBody<CreateUserDto>, res: Response) => {
     try {
@@ -44,6 +46,7 @@ router.post(
 
 router.post(
   '/registration-email-resending',
+  createRateLimitMiddleware('/registration-email-resending'),
   emailValidationMiddleware,
   async (req: RequestWithBody<{ email: string }>, res: Response) => {
     try {
@@ -62,6 +65,7 @@ router.post(
 
 router.post(
   '/registration-confirmation',
+  createRateLimitMiddleware('/registration-confirmation'),
   confirmationCodeValidationMiddleware,
   async (req: RequestWithBody<{ code: string }>, res: Response) => {
     try {
@@ -79,26 +83,31 @@ router.post(
   }
 );
 
-router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<LoginDto>, res: Response) => {
-  try {
-    const { loginOrEmail, password }: LoginDto = req.body;
-    const deviceTitle: string = req.headers['user-agent'] || 'Unknown device';
-    const ip: string = req.ip || req.socket.remoteAddress || 'Unknown IP';
-    const tokens: LoginResult | null = await authService.login({ loginOrEmail, password }, deviceTitle, ip);
+router.post(
+  '/login',
+  createRateLimitMiddleware('/login'),
+  loginValidationMiddleware,
+  async (req: RequestWithBody<LoginDto>, res: Response) => {
+    try {
+      const { loginOrEmail, password }: LoginDto = req.body;
+      const deviceTitle: string = req.headers['user-agent'] || 'Unknown device';
+      const ip: string = req.ip || req.socket.remoteAddress || 'Unknown IP';
+      const tokens: LoginResult | null = await authService.login({ loginOrEmail, password }, deviceTitle, ip);
 
-    if (!tokens) {
-      return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
+      if (!tokens) {
+        return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
+      }
+
+      res.cookie('refreshToken', tokens.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+      res.status(HTTP_STATUSES.OK).send({
+        accessToken: tokens.accessToken,
+      });
+    } catch (error) {
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
     }
-
-    res.cookie('refreshToken', tokens.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
-
-    res.status(HTTP_STATUSES.OK).send({
-      accessToken: tokens.accessToken,
-    });
-  } catch (error) {
-    res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
-});
+);
 
 router.post('/logout', refreshAuthMiddleware, async (req: Request, res: Response) => {
   try {
