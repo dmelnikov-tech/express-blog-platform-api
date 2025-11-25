@@ -9,5 +9,8 @@ export interface User {
     confirmationCode: string | null;
     confirmationCodeExpiredAt: string | null;
   };
+  recoveryInfo: {
+    recoveryCode: string | null;
+    recoveryCodeExpiredAt: string | null;
+  };
 }
-

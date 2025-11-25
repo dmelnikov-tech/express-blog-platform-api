@@ -3,3 +3,11 @@ export interface LoginDto {
   password: string;
 }
 
+export interface PasswordRecoveryDto {
+  email: string;
+}
+
+export interface NewPasswordDto {
+  newPassword: string;
+  recoveryCode: string;
+}

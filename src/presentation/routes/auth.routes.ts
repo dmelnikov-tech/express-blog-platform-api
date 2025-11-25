@@ -2,14 +2,16 @@ import { Router, Response, Request } from 'express';
 import { authService } from '../../application/services/auth.service.js';
 import { usersService } from '../../application/services/users.service.js';
 import { HTTP_STATUSES } from '../../shared/constants/http-statuses.js';
-import type { LoginDto } from '../../application/dto/auth.dto.js';
-import type { EmailConfirmationResult, LoginResult } from '../../domain/types/auth.types.js';
+import type { LoginDto, PasswordRecoveryDto, NewPasswordDto } from '../../application/dto/auth.dto.js';
+import type { EmailConfirmationResult, LoginResult, PasswordRecoveryResult } from '../../domain/types/auth.types.js';
 import type { CreateUserDto, CreateUserResult, UserResponseDto } from '../../application/dto/user.dto.js';
 import { RequestWithBody } from '../../shared/types/express-request.types.js';
 import {
   loginValidationMiddleware,
   emailValidationMiddleware,
   confirmationCodeValidationMiddleware,
+  passwordRecoveryValidationMiddleware,
+  newPasswordValidationMiddleware,
 } from '../middlewares/validation/auth.validation.js';
 import { createUserValidationMiddleware } from '../middlewares/validation/user.validation.js';
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
@@ -163,5 +165,42 @@ router.get('/me', bearerAuthMiddleware, async (req: Request, res: Response) => {
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
 });
+
+router.post(
+  '/password-recovery',
+  createRateLimitMiddleware('/password-recovery'),
+  passwordRecoveryValidationMiddleware,
+  async (req: RequestWithBody<PasswordRecoveryDto>, res: Response) => {
+    try {
+      const { email }: PasswordRecoveryDto = req.body;
+      await authService.passwordRecovery(email);
+
+      // Для безопасности всегда возвращаем 204, даже если пользователя нет
+      res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+    } catch (error) {
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    }
+  }
+);
+
+router.post(
+  '/new-password',
+  createRateLimitMiddleware('/new-password'),
+  newPasswordValidationMiddleware,
+  async (req: RequestWithBody<NewPasswordDto>, res: Response) => {
+    try {
+      const { newPassword, recoveryCode }: NewPasswordDto = req.body;
+      const result: PasswordRecoveryResult = await authService.setNewPassword(recoveryCode, newPassword);
+
+      if (sendErrorResponse(res, result)) {
+        return;
+      }
+
+      res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+    } catch (error) {
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    }
+  }
+);
 
 export default router;

@@ -5,4 +5,6 @@ export const USER_ERROR_MESSAGES = {
   EMAIL_ALREADY_CONFIRMED: 'User with this email already confirmed',
   INVALID_CONFIRMATION_CODE: 'Invalid confirmation code',
   CONFIRMATION_CODE_EXPIRED: 'Confirmation code expired',
+  INVALID_RECOVERY_CODE: 'Invalid recovery code',
+  RECOVERY_CODE_EXPIRED: 'Recovery code expired',
 };

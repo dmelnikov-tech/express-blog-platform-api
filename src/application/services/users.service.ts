@@ -44,6 +44,10 @@ export const usersService = {
         confirmationCode: null,
         confirmationCodeExpiredAt: null,
       },
+      recoveryInfo: {
+        recoveryCode: null,
+        recoveryCodeExpiredAt: null,
+      },
     };
 
     const createdUser: UserDocument = await usersRepository.create(newUser);
@@ -97,5 +101,17 @@ export const usersService = {
 
   async confirmUserForAuth(confirmationCode: string): Promise<void> {
     await usersRepository.confirmUser(confirmationCode);
+  },
+
+  async findUserByRecoveryCodeForAuth(recoveryCode: string): Promise<UserDocument | null> {
+    return await usersRepository.findByRecoveryCode(recoveryCode);
+  },
+
+  async updateRecoveryCodeForAuth(email: string, recoveryCode: string, recoveryCodeExpiredAt: string): Promise<void> {
+    await usersRepository.updateRecoveryCode(email, recoveryCode, recoveryCodeExpiredAt);
+  },
+
+  async updatePasswordByRecoveryCodeForAuth(recoveryCode: string, passwordHash: string): Promise<void> {
+    await usersRepository.updatePasswordByRecoveryCode(recoveryCode, passwordHash);
   },
 };

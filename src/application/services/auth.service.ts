@@ -4,7 +4,7 @@ import { devicesService } from './devices.service.js';
 import { comparePassword, hashPassword } from '../../infrastructure/external/password/password.provider.js';
 import type { LoginDto } from '../dto/auth.dto.js';
 import type { CreateUserDto, CreateUserResult, UserResponseDto } from '../dto/user.dto.js';
-import type { LoginResult, EmailConfirmationResult, AuthTokenPayload } from '../../domain/types/auth.types.js';
+import type { LoginResult, EmailConfirmationResult, AuthTokenPayload, PasswordRecoveryResult } from '../../domain/types/auth.types.js';
 import type { User } from '../../domain/entities/user.entity.js';
 import type { UserDocument } from '../../infrastructure/types/user.document.types.js';
 import {
@@ -13,7 +13,11 @@ import {
   verifyRefreshToken,
 } from '../../infrastructure/external/jwt/jwt.provider.js';
 import { emailService } from '../../infrastructure/external/email/email.provider.js';
-import { REFRESH_TOKEN_EXPIRATION_MS, CONFIRMATION_CODE_EXPIRATION_MS } from '../../shared/constants/auth.constants.js';
+import {
+  REFRESH_TOKEN_EXPIRATION_MS,
+  CONFIRMATION_CODE_EXPIRATION_MS,
+  RECOVERY_CODE_EXPIRATION_MS,
+} from '../../shared/constants/auth.constants.js';
 import { USER_ERROR_MESSAGES } from '../../shared/constants/user-messages.constants.js';
 import { checkUserUniqueness } from '../../shared/utils/user-uniqueness.utils.js';
 
@@ -105,6 +109,10 @@ export const authService = {
         userIsConfirmed: false,
         confirmationCode,
         confirmationCodeExpiredAt,
+      },
+      recoveryInfo: {
+        recoveryCode: null,
+        recoveryCodeExpiredAt: null,
       },
     };
 
@@ -200,6 +208,53 @@ export const authService = {
     } catch (error) {
       return null;
     }
+  },
+
+  async passwordRecovery(email: string): Promise<void> {
+    const user: UserDocument | null = await usersService.findUserByEmailForAuth(email);
+
+    if (!user) {
+      return;
+    }
+
+    const recoveryCode: string = randomUUID();
+    const recoveryCodeExpiredAt: string = new Date(Date.now() + RECOVERY_CODE_EXPIRATION_MS).toISOString();
+    await usersService.updateRecoveryCodeForAuth(email, recoveryCode, recoveryCodeExpiredAt);
+    await emailService.sendPasswordRecoveryEmail(email, recoveryCode);
+  },
+
+  async setNewPassword(recoveryCode: string, newPassword: string): Promise<PasswordRecoveryResult> {
+    const user: UserDocument | null = await usersService.findUserByRecoveryCodeForAuth(recoveryCode);
+
+    if (!user) {
+      return {
+        success: false,
+        error: {
+          field: 'recoveryCode',
+          message: USER_ERROR_MESSAGES.INVALID_RECOVERY_CODE,
+        },
+      };
+    }
+
+    if (user.recoveryInfo.recoveryCodeExpiredAt) {
+      const codeExpiredAt: Date = new Date(user.recoveryInfo.recoveryCodeExpiredAt);
+      const now: Date = new Date();
+
+      if (now > codeExpiredAt) {
+        return {
+          success: false,
+          error: {
+            field: 'recoveryCode',
+            message: USER_ERROR_MESSAGES.RECOVERY_CODE_EXPIRED,
+          },
+        };
+      }
+    }
+
+    const passwordHash: string = await hashPassword(newPassword);
+    await usersService.updatePasswordByRecoveryCodeForAuth(recoveryCode, passwordHash);
+
+    return { success: true };
   },
 
   _mapUserToResponseDto(user: UserDocument): UserResponseDto {

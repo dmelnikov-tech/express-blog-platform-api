@@ -50,3 +50,40 @@ export const confirmationCodeValidationMiddleware = [
   handleValidationErrors,
 ];
 
+export const passwordRecoveryValidationMiddleware = [
+  body('email')
+    .isString()
+    .withMessage('email must be a string')
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage('email should not be empty')
+    .bail()
+    .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)
+    .withMessage('email must match pattern ^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$'),
+  handleValidationErrors,
+];
+
+export const newPasswordValidationMiddleware = [
+  body('newPassword')
+    .isString()
+    .withMessage('newPassword must be a string')
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage('newPassword should not be empty')
+    .bail()
+    .isLength({ min: 6, max: 20 })
+    .withMessage('newPassword should be between 6 and 20 characters'),
+  body('recoveryCode')
+    .isString()
+    .withMessage('recoveryCode must be a string')
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage('recoveryCode should not be empty')
+    .bail()
+    .isUUID()
+    .withMessage('recoveryCode must be a valid UUID'),
+  handleValidationErrors,
+];

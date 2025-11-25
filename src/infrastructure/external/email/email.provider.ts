@@ -38,5 +38,25 @@ export const emailService = {
       throw error;
     }
   },
-};
 
+  async sendPasswordRecoveryEmail(email: string, recoveryCode: string): Promise<void> {
+    try {
+      const recoveryUrl = `${CONFIRMATION_BASE_URL}/password-recovery?recoveryCode=${recoveryCode}`;
+
+      const mailOptions = {
+        from: SMTP_USER,
+        to: email,
+        subject: 'Восстановление пароля',
+        html: `
+        <h1>Восстановление пароля</h1>
+        <p>Для восстановления пароля перейдите по ссылке ниже:</p>
+        <p><a href="${recoveryUrl}">восстановить пароль</a></p>
+      `,
+      };
+
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      throw error;
+    }
+  },
+};

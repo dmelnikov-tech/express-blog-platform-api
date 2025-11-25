@@ -115,5 +115,38 @@ export const usersRepository = {
     const result: DeleteResult = await collection.deleteMany({});
     return result.deletedCount > 0;
   },
-};
 
+  async findByRecoveryCode(recoveryCode: string): Promise<UserDocument | null> {
+    const collection = getCollection();
+    return await collection.findOne({ 'recoveryInfo.recoveryCode': recoveryCode });
+  },
+
+  async updateRecoveryCode(email: string, recoveryCode: string, recoveryCodeExpiredAt: string): Promise<boolean> {
+    const collection = getCollection();
+    const result: UpdateResult = await collection.updateOne(
+      { email },
+      {
+        $set: {
+          'recoveryInfo.recoveryCode': recoveryCode,
+          'recoveryInfo.recoveryCodeExpiredAt': recoveryCodeExpiredAt,
+        },
+      }
+    );
+    return result.modifiedCount > 0;
+  },
+
+  async updatePasswordByRecoveryCode(recoveryCode: string, passwordHash: string): Promise<boolean> {
+    const collection = getCollection();
+    const result: UpdateResult = await collection.updateOne(
+      { 'recoveryInfo.recoveryCode': recoveryCode },
+      {
+        $set: {
+          passwordHash,
+          'recoveryInfo.recoveryCode': null,
+          'recoveryInfo.recoveryCodeExpiredAt': null,
+        },
+      }
+    );
+    return result.modifiedCount > 0;
+  },
+};
