@@ -13,6 +13,7 @@ type RequestWithParamsAndQuery<ParamsType, QueryType> = Request<ParamsType, {}, 
 type ParamsId = { id: string };
 type ParamsBlogId = { blogId: string };
 type ParamsPostId = { postId: string };
+type ParamsDeviceId = { deviceId: string };
 
 export {
   RequestWithBody,
@@ -23,5 +24,6 @@ export {
   ParamsId,
   ParamsBlogId,
   ParamsPostId,
+  ParamsDeviceId,
 };
 

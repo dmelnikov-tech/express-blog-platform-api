@@ -116,7 +116,7 @@ router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsI
 });
 
 router.get(
-  '/:postId/comments',
+  '/:id/comments',
   async (req: RequestWithParamsAndQuery<ParamsPostId, PaginationSortQuery>, res: Response) => {
     try {
       const { postId }: ParamsPostId = req.params;

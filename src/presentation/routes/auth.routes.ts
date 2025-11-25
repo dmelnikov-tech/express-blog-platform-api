@@ -13,6 +13,7 @@ import {
 } from '../middlewares/validation/auth.validation.js';
 import { createUserValidationMiddleware } from '../middlewares/validation/user.validation.js';
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
+import { refreshAuthMiddleware } from '../middlewares/refresh-auth.middleware.js';
 import { REFRESH_TOKEN_COOKIE_OPTIONS } from '../utils/cookie.utils.js';
 import { sendErrorResponse } from '../utils/response.utils.js';
 
@@ -99,15 +100,10 @@ router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<Log
   }
 });
 
-router.post('/logout', async (req: Request, res: Response) => {
+router.post('/logout', refreshAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const refreshToken: string | undefined = req.cookies.refreshToken;
-
-    if (!refreshToken) {
-      return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
-    }
-
-    const success: boolean = await authService.logout(refreshToken);
+    const deviceId: string = req.deviceId;
+    const success: boolean = await authService.logout(deviceId);
 
     if (!success) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
@@ -119,15 +115,11 @@ router.post('/logout', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/refresh-token', async (req: Request, res: Response) => {
+router.post('/refresh-token', refreshAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const refreshToken: string | undefined = req.cookies.refreshToken;
-
-    if (!refreshToken) {
-      return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
-    }
-
-    const tokens: LoginResult | null = await authService.refreshToken(refreshToken);
+    const deviceId: string = req.deviceId;
+    const userId: string = req.userId;
+    const tokens: LoginResult | null = await authService.refreshToken(deviceId, userId);
 
     if (!tokens) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);

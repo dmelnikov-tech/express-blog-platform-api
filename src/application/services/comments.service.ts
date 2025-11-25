@@ -4,8 +4,8 @@ import type { PaginationSortParams, PaginatedSortedResponse } from '../../domain
 import type { Comment } from '../../domain/entities/comment.entity.js';
 import type { CommentDocument } from '../../infrastructure/types/comment.document.types.js';
 import { commentsRepository } from '../../infrastructure/database/repositories/comments.repository.js';
-import { usersRepository } from '../../infrastructure/database/repositories/users.repository.js';
-import { postsRepository } from '../../infrastructure/database/repositories/posts.repository.js';
+import { usersService } from './users.service.js';
+import { postsService } from './posts.service.js';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
 import { createPaginatedResponse } from '../../shared/utils/pagination.utils.js';
 
@@ -14,12 +14,13 @@ export const commentsService = {
     postId: string,
     params: PaginationSortParams
   ): Promise<PaginatedSortedResponse<CommentResponseDto>> {
-    const post = await postsRepository.findById(postId);
+    const post = await postsService.getPostById(postId);
     if (!post) {
       throw new Error(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
-    const { items, totalCount }: { items: CommentDocument[]; totalCount: number } = await commentsRepository.findByPostId(postId, params);
+    const { items, totalCount }: { items: CommentDocument[]; totalCount: number } =
+      await commentsRepository.findByPostId(postId, params);
     const comments: CommentResponseDto[] = this._mapCommentsToResponseDto(items);
     return createPaginatedResponse<CommentResponseDto>(comments, totalCount, params);
   },
@@ -30,12 +31,12 @@ export const commentsService = {
   },
 
   async createComment(postId: string, userId: string, data: CreateCommentDto): Promise<CommentResponseDto> {
-    const post = await postsRepository.findById(postId);
+    const post = await postsService.getPostById(postId);
     if (!post) {
       throw new Error(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
-    const user = await usersRepository.findById(userId);
+    const user = await usersService.getUserById(userId);
     if (!user) {
       throw new Error(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
     }

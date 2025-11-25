@@ -1,13 +1,12 @@
 import { randomUUID } from 'crypto';
-import { usersRepository } from '../../infrastructure/database/repositories/users.repository.js';
-import { devicesRepository } from '../../infrastructure/database/repositories/devices.repository.js';
+import { usersService } from './users.service.js';
+import { devicesService } from './devices.service.js';
 import { comparePassword, hashPassword } from '../../infrastructure/external/password/password.provider.js';
 import type { LoginDto } from '../dto/auth.dto.js';
 import type { CreateUserDto, CreateUserResult, UserResponseDto } from '../dto/user.dto.js';
 import type { LoginResult, EmailConfirmationResult, AuthTokenPayload } from '../../domain/types/auth.types.js';
 import type { User } from '../../domain/entities/user.entity.js';
 import type { UserDocument } from '../../infrastructure/types/user.document.types.js';
-import type { DeviceDocument } from '../../infrastructure/types/device.document.types.js';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -22,7 +21,7 @@ export const authService = {
   async login(data: LoginDto, deviceTitle: string, ip: string): Promise<LoginResult | null> {
     const { loginOrEmail, password } = data;
 
-    const user: UserDocument | null = await usersRepository.findByLoginOrEmail(loginOrEmail, loginOrEmail);
+    const user: UserDocument | null = await usersService.findUserByLoginOrEmailForAuth(loginOrEmail);
     if (!user) {
       return null;
     }
@@ -37,16 +36,7 @@ export const authService = {
     const expiresAt: Date = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
     const refreshToken: string = generateRefreshToken(user.id, deviceId);
 
-    await devicesRepository.create({
-      deviceId,
-      userId: user.id,
-      title: deviceTitle,
-      ip,
-      refreshToken,
-      lastActiveDate: now.toISOString(),
-      createdAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-    });
+    await devicesService.createDeviceForAuth(deviceId, user.id, deviceTitle, ip, refreshToken, expiresAt.toISOString());
 
     const accessToken: string = generateAccessToken(user.id);
 
@@ -56,30 +46,25 @@ export const authService = {
     };
   },
 
-  async refreshToken(token: string): Promise<LoginResult | null> {
+  async refreshToken(deviceId: string, userId: string): Promise<LoginResult | null> {
     try {
-      const payload: AuthTokenPayload = verifyRefreshToken(token);
-      if (!payload.deviceId) {
-        return null;
-      }
-
-      const device: DeviceDocument | null = await devicesRepository.findByDeviceId(payload.deviceId);
-      if (!device || device.refreshToken !== token) {
+      const device = await devicesService.getDeviceForRefresh(deviceId);
+      if (!device) {
         return null;
       }
 
       const expiresAt: Date = new Date(device.expiresAt);
       const now: Date = new Date();
       if (now > expiresAt) {
-        await devicesRepository.deleteByDeviceId(payload.deviceId);
+        await devicesService.deleteDeviceForLogout(deviceId);
         return null;
       }
 
-      const newRefreshToken: string = generateRefreshToken(payload.userId, payload.deviceId);
+      const newRefreshToken: string = generateRefreshToken(userId, deviceId);
       const newExpiresAt: Date = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
-      await devicesRepository.updateRefreshToken(payload.deviceId, newRefreshToken, newExpiresAt.toISOString());
+      await devicesService.updateDeviceRefreshToken(deviceId, newRefreshToken, newExpiresAt.toISOString());
 
-      const newAccessToken: string = generateAccessToken(payload.userId);
+      const newAccessToken: string = generateAccessToken(userId);
 
       return {
         accessToken: newAccessToken,
@@ -90,27 +75,17 @@ export const authService = {
     }
   },
 
-  async logout(token: string): Promise<boolean> {
+  async logout(deviceId: string): Promise<boolean> {
     try {
-      const payload: AuthTokenPayload = verifyRefreshToken(token);
-      if (!payload.deviceId) {
-        return false;
-      }
-
-      const device: DeviceDocument | null = await devicesRepository.findByDeviceId(payload.deviceId);
-      if (!device || device.refreshToken !== token) {
-        return false;
-      }
-
-      await devicesRepository.deleteByDeviceId(payload.deviceId);
-      return true;
+      const deletedResult: boolean = await devicesService.deleteDeviceForLogout(deviceId);
+      return deletedResult;
     } catch (error) {
       return false;
     }
   },
 
   async registration(data: CreateUserDto): Promise<CreateUserResult> {
-    const existingUser: UserDocument | null = await usersRepository.findByLoginOrEmail(data.login, data.email);
+    const existingUser: UserDocument | null = await usersService.findUserByLoginOrEmailForAuth(data.login);
     const uniquenessError = checkUserUniqueness(existingUser, data.login, data.email);
     if (uniquenessError) {
       return uniquenessError;
@@ -133,7 +108,7 @@ export const authService = {
       },
     };
 
-    const createdUser: UserDocument = await usersRepository.create(newUser);
+    const createdUser: UserDocument = await usersService.createUserForAuth(newUser);
     await emailService.sendConfirmationEmail(data.email, confirmationCode);
 
     return {
@@ -143,7 +118,7 @@ export const authService = {
   },
 
   async resendConfirmationEmail(email: string): Promise<EmailConfirmationResult> {
-    const user: UserDocument | null = await usersRepository.findByEmail(email);
+    const user: UserDocument | null = await usersService.findUserByEmailForAuth(email);
 
     if (!user) {
       return {
@@ -167,14 +142,14 @@ export const authService = {
 
     const newConfirmationCode: string = randomUUID();
     const confirmationCodeExpiredAt: string = new Date(Date.now() + CONFIRMATION_CODE_EXPIRATION_MS).toISOString();
-    await usersRepository.updateConfirmationCode(email, newConfirmationCode, confirmationCodeExpiredAt);
+    await usersService.updateConfirmationCodeForAuth(email, newConfirmationCode, confirmationCodeExpiredAt);
     await emailService.sendConfirmationEmail(email, newConfirmationCode);
 
     return { success: true };
   },
 
   async confirmRegistration(confirmationCode: string): Promise<EmailConfirmationResult> {
-    const user: UserDocument | null = await usersRepository.findByConfirmationCode(confirmationCode);
+    const user: UserDocument | null = await usersService.findUserByConfirmationCodeForAuth(confirmationCode);
 
     if (!user) {
       return {
@@ -201,8 +176,30 @@ export const authService = {
       }
     }
 
-    await usersRepository.confirmUser(confirmationCode);
+    await usersService.confirmUserForAuth(confirmationCode);
     return { success: true };
+  },
+
+  // метод для refresh-auth.middleware
+  async validateRefreshToken(token: string): Promise<{ userId: string; deviceId: string } | null> {
+    try {
+      const payload: AuthTokenPayload = verifyRefreshToken(token);
+      if (!payload.deviceId) {
+        return null;
+      }
+
+      const isValidToken: boolean = await devicesService.validateDeviceForAuth(payload.deviceId, token);
+      if (!isValidToken) {
+        return null;
+      }
+
+      return {
+        userId: payload.userId,
+        deviceId: payload.deviceId,
+      };
+    } catch (error) {
+      return null;
+    }
   },
 
   _mapUserToResponseDto(user: UserDocument): UserResponseDto {

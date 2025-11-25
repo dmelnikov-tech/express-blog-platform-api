@@ -12,6 +12,11 @@ export const devicesRepository = {
     return await collection.findOne({ deviceId });
   },
 
+  async findByUserId(userId: string): Promise<DeviceDocument[]> {
+    const collection = getCollection();
+    return await collection.find({ userId }).toArray();
+  },
+
   async create(device: Device): Promise<DeviceDocument> {
     const collection = getCollection();
     await collection.insertOne(device as DeviceDocument);
@@ -21,10 +26,7 @@ export const devicesRepository = {
   async updateRefreshToken(deviceId: string, refreshToken: string, expiresAt: string): Promise<boolean> {
     const collection = getCollection();
     const now = new Date().toISOString();
-    const result = await collection.updateOne(
-      { deviceId },
-      { $set: { refreshToken, expiresAt, lastActiveDate: now } }
-    );
+    const result = await collection.updateOne({ deviceId }, { $set: { refreshToken, expiresAt, lastActiveDate: now } });
     return result.modifiedCount > 0;
   },
 
@@ -59,4 +61,3 @@ export const devicesRepository = {
     return result.deletedCount > 0;
   },
 };
-

@@ -4,3 +4,9 @@ export interface DeviceResponseDto {
   lastActiveDate: string;
   deviceId: string;
 }
+
+export interface DeleteDeviceResult {
+  success: boolean;
+  notFound?: boolean;
+  forbidden?: boolean;
+}

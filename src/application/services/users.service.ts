@@ -69,4 +69,33 @@ export const usersService = {
   _mapUsersToResponseDto(users: UserDocument[]): UserResponseDto[] {
     return users.map(user => this._mapUserToResponseDto(user));
   },
+
+  // методы для auth.service
+  async findUserByLoginOrEmailForAuth(loginOrEmail: string): Promise<UserDocument | null> {
+    return await usersRepository.findByLoginOrEmail(loginOrEmail, loginOrEmail);
+  },
+
+  async findUserByEmailForAuth(email: string): Promise<UserDocument | null> {
+    return await usersRepository.findByEmail(email);
+  },
+
+  async findUserByConfirmationCodeForAuth(confirmationCode: string): Promise<UserDocument | null> {
+    return await usersRepository.findByConfirmationCode(confirmationCode);
+  },
+
+  async createUserForAuth(user: User): Promise<UserDocument> {
+    return await usersRepository.create(user);
+  },
+
+  async updateConfirmationCodeForAuth(
+    email: string,
+    confirmationCode: string,
+    confirmationCodeExpiredAt: string
+  ): Promise<void> {
+    await usersRepository.updateConfirmationCode(email, confirmationCode, confirmationCodeExpiredAt);
+  },
+
+  async confirmUserForAuth(confirmationCode: string): Promise<void> {
+    await usersRepository.confirmUser(confirmationCode);
+  },
 };
