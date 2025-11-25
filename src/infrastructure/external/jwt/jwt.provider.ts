@@ -18,9 +18,10 @@ export const generateAccessToken = (userId: string): string => {
   });
 };
 
-export const generateRefreshToken = (userId: string): string => {
+export const generateRefreshToken = (userId: string, deviceId: string): string => {
   const payload = {
     userId,
+    deviceId,
   };
 
   return jwt.sign(payload, JWT_REFRESH_SECRET!, {
@@ -35,4 +36,3 @@ export const verifyAccessToken = (token: string): AuthTokenPayload => {
 export const verifyRefreshToken = (token: string): AuthTokenPayload => {
   return jwt.verify(token, JWT_REFRESH_SECRET!) as AuthTokenPayload;
 };
-

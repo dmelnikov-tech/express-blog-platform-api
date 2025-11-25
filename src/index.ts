@@ -12,6 +12,7 @@ import { connectToDatabase, closeDatabaseConnection } from './infrastructure/dat
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', true);
 app.use(express.json());
 app.use(cookieParser());
 app.use('/blogs', blogsRoutes);

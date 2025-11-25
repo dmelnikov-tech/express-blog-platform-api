@@ -81,7 +81,9 @@ router.post(
 router.post('/login', loginValidationMiddleware, async (req: RequestWithBody<LoginDto>, res: Response) => {
   try {
     const { loginOrEmail, password }: LoginDto = req.body;
-    const tokens: LoginResult | null = await authService.login({ loginOrEmail, password });
+    const deviceTitle: string = req.headers['user-agent'] || 'Unknown device';
+    const ip: string = req.ip || req.socket.remoteAddress || 'Unknown IP';
+    const tokens: LoginResult | null = await authService.login({ loginOrEmail, password }, deviceTitle, ip);
 
     if (!tokens) {
       return res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);

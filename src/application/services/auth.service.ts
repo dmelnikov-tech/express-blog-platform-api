@@ -1,12 +1,13 @@
 import { randomUUID } from 'crypto';
 import { usersRepository } from '../../infrastructure/database/repositories/users.repository.js';
-import { refreshTokensRepository } from '../../infrastructure/database/repositories/refresh-tokens.repository.js';
+import { devicesRepository } from '../../infrastructure/database/repositories/devices.repository.js';
 import { comparePassword, hashPassword } from '../../infrastructure/external/password/password.provider.js';
 import type { LoginDto } from '../dto/auth.dto.js';
 import type { CreateUserDto, CreateUserResult, UserResponseDto } from '../dto/user.dto.js';
-import type { LoginResult, EmailConfirmationResult } from '../../domain/types/auth.types.js';
+import type { LoginResult, EmailConfirmationResult, AuthTokenPayload } from '../../domain/types/auth.types.js';
 import type { User } from '../../domain/entities/user.entity.js';
 import type { UserDocument } from '../../infrastructure/types/user.document.types.js';
+import type { DeviceDocument } from '../../infrastructure/types/device.document.types.js';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -18,7 +19,7 @@ import { USER_ERROR_MESSAGES } from '../../shared/constants/user-messages.consta
 import { checkUserUniqueness } from '../../shared/utils/user-uniqueness.utils.js';
 
 export const authService = {
-  async login(data: LoginDto): Promise<LoginResult | null> {
+  async login(data: LoginDto, deviceTitle: string, ip: string): Promise<LoginResult | null> {
     const { loginOrEmail, password } = data;
 
     const user: UserDocument | null = await usersRepository.findByLoginOrEmail(loginOrEmail, loginOrEmail);
@@ -31,17 +32,23 @@ export const authService = {
       return null;
     }
 
-    const accessToken: string = generateAccessToken(user.id);
-    const refreshToken: string = generateRefreshToken(user.id);
+    const deviceId: string = randomUUID();
+    const now: Date = new Date();
+    const expiresAt: Date = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
+    const refreshToken: string = generateRefreshToken(user.id, deviceId);
 
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
-    await refreshTokensRepository.create({
+    await devicesRepository.create({
+      deviceId,
       userId: user.id,
-      token: refreshToken,
+      title: deviceTitle,
+      ip,
+      refreshToken,
+      lastActiveDate: now.toISOString(),
       createdAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
     });
+
+    const accessToken: string = generateAccessToken(user.id);
 
     return {
       accessToken,
@@ -51,51 +58,55 @@ export const authService = {
 
   async refreshToken(token: string): Promise<LoginResult | null> {
     try {
-      const storedToken = await refreshTokensRepository.findByToken(token);
-      if (!storedToken) {
+      const payload: AuthTokenPayload = verifyRefreshToken(token);
+      if (!payload.deviceId) {
         return null;
       }
 
-      const expiresAt = new Date(storedToken.expiresAt);
-      const now = new Date();
+      const device: DeviceDocument | null = await devicesRepository.findByDeviceId(payload.deviceId);
+      if (!device || device.refreshToken !== token) {
+        return null;
+      }
+
+      const expiresAt: Date = new Date(device.expiresAt);
+      const now: Date = new Date();
       if (now > expiresAt) {
-        await refreshTokensRepository.deleteByToken(token);
+        await devicesRepository.deleteByDeviceId(payload.deviceId);
         return null;
       }
 
-      const payload = verifyRefreshToken(token);
+      const newRefreshToken: string = generateRefreshToken(payload.userId, payload.deviceId);
+      const newExpiresAt: Date = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
+      await devicesRepository.updateRefreshToken(payload.deviceId, newRefreshToken, newExpiresAt.toISOString());
 
-      await refreshTokensRepository.deleteByToken(token);
-
-      const accessToken: string = generateAccessToken(payload.userId);
-      const refreshToken: string = generateRefreshToken(payload.userId);
-
-      const newExpiresAt = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
-      await refreshTokensRepository.create({
-        userId: payload.userId,
-        token: refreshToken,
-        createdAt: now.toISOString(),
-        expiresAt: newExpiresAt.toISOString(),
-      });
+      const newAccessToken: string = generateAccessToken(payload.userId);
 
       return {
-        accessToken,
-        refreshToken,
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
       };
     } catch (error) {
-      await refreshTokensRepository.deleteByToken(token);
       return null;
     }
   },
 
   async logout(token: string): Promise<boolean> {
-    const storedToken = await refreshTokensRepository.findByToken(token);
-    if (!storedToken) {
+    try {
+      const payload: AuthTokenPayload = verifyRefreshToken(token);
+      if (!payload.deviceId) {
+        return false;
+      }
+
+      const device: DeviceDocument | null = await devicesRepository.findByDeviceId(payload.deviceId);
+      if (!device || device.refreshToken !== token) {
+        return false;
+      }
+
+      await devicesRepository.deleteByDeviceId(payload.deviceId);
+      return true;
+    } catch (error) {
       return false;
     }
-
-    await refreshTokensRepository.deleteByToken(token);
-    return true;
   },
 
   async registration(data: CreateUserDto): Promise<CreateUserResult> {
@@ -105,9 +116,9 @@ export const authService = {
       return uniquenessError;
     }
 
-    const passwordHash = await hashPassword(data.password);
-    const confirmationCode = randomUUID();
-    const confirmationCodeExpiredAt = new Date(Date.now() + CONFIRMATION_CODE_EXPIRATION_MS).toISOString();
+    const passwordHash: string = await hashPassword(data.password);
+    const confirmationCode: string = randomUUID();
+    const confirmationCodeExpiredAt: string = new Date(Date.now() + CONFIRMATION_CODE_EXPIRATION_MS).toISOString();
 
     const newUser: User = {
       id: randomUUID(),
@@ -154,8 +165,8 @@ export const authService = {
       };
     }
 
-    const newConfirmationCode = randomUUID();
-    const confirmationCodeExpiredAt = new Date(Date.now() + CONFIRMATION_CODE_EXPIRATION_MS).toISOString();
+    const newConfirmationCode: string = randomUUID();
+    const confirmationCodeExpiredAt: string = new Date(Date.now() + CONFIRMATION_CODE_EXPIRATION_MS).toISOString();
     await usersRepository.updateConfirmationCode(email, newConfirmationCode, confirmationCodeExpiredAt);
     await emailService.sendConfirmationEmail(email, newConfirmationCode);
 
@@ -176,8 +187,8 @@ export const authService = {
     }
 
     if (user.confirmationInfo.confirmationCodeExpiredAt) {
-      const codeExpiredAt = new Date(user.confirmationInfo.confirmationCodeExpiredAt);
-      const now = new Date();
+      const codeExpiredAt: Date = new Date(user.confirmationInfo.confirmationCodeExpiredAt);
+      const now: Date = new Date();
 
       if (now > codeExpiredAt) {
         return {
