@@ -5,14 +5,16 @@ import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
 import type { CommentResponseDto, UpdateCommentDto } from '../../application/dto/comment.dto.js';
 import { RequestWithParams, RequestWithParamsAndBody, ParamsId } from '../../shared/types/express-request.types.js';
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
+import { optionalBearerAuthMiddleware } from '../middlewares/optional-bearer-auth.middleware.js';
 import { createCommentValidationMiddleware } from '../middlewares/validation/comment.validation.js';
 
 const router = Router();
 
-router.get('/:id', async (req: RequestWithParams<ParamsId>, res: Response) => {
+router.get('/:id', optionalBearerAuthMiddleware, async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
     const { id }: ParamsId = req.params;
-    const comment: CommentResponseDto | null = await commentsService.getCommentById(id);
+    const currentUserId: string | undefined = req.userId;
+    const comment: CommentResponseDto | null = await commentsService.getCommentById(id, currentUserId);
 
     if (!comment) {
       return res.sendStatus(HTTP_STATUSES.NOT_FOUND);
@@ -32,7 +34,7 @@ router.put(
     try {
       const { id }: ParamsId = req.params;
       const { content }: UpdateCommentDto = req.body;
-      const userId: string = req.userId;
+      const userId: string = req.userId!;
       const updateResult: boolean = await commentsService.updateComment(id, userId, { content });
 
       if (!updateResult) {
@@ -57,7 +59,7 @@ router.put(
 router.delete('/:id', bearerAuthMiddleware, async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
     const { id }: ParamsId = req.params;
-    const userId: string = req.userId;
+    const userId: string = req.userId!;
     const deleteResult: boolean = await commentsService.deleteComment(id, userId);
 
     if (!deleteResult) {
@@ -79,4 +81,3 @@ router.delete('/:id', bearerAuthMiddleware, async (req: RequestWithParams<Params
 });
 
 export default router;
-

@@ -1,3 +1,5 @@
+import type { CommentLikeStatus } from '../../domain/types/comment.types.js';
+
 export interface CommentResponseDto {
   id: string;
   content: string;
@@ -6,6 +8,11 @@ export interface CommentResponseDto {
     userLogin: string;
   };
   createdAt: string;
+  likesInfo: {
+    likesCount: number;
+    dislikesCount: number;
+    myStatus: CommentLikeStatus;
+  };
 }
 
 export interface CreateCommentDto {
@@ -15,4 +22,3 @@ export interface CreateCommentDto {
 export interface UpdateCommentDto {
   content: string;
 }
-

@@ -4,6 +4,7 @@ import { blogsRepository } from '../../infrastructure/database/repositories/blog
 import { postsRepository } from '../../infrastructure/database/repositories/posts.repository.js';
 import { usersRepository } from '../../infrastructure/database/repositories/users.repository.js';
 import { commentsRepository } from '../../infrastructure/database/repositories/comments.repository.js';
+import { commentLikesRepository } from '../../infrastructure/database/repositories/comment-likes.repository.js';
 import { devicesRepository } from '../../infrastructure/database/repositories/devices.repository.js';
 
 const router = Router();
@@ -14,6 +15,7 @@ router.delete('/all-data', async (req: Request, res: Response) => {
     await postsRepository.deleteAll();
     await usersRepository.deleteAll();
     await commentsRepository.deleteAll();
+    await commentLikesRepository.deleteAll();
     await devicesRepository.deleteAll();
     res.sendStatus(HTTP_STATUSES.NO_CONTENT);
   } catch (error) {

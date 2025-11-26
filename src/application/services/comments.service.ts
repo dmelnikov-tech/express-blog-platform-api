@@ -3,31 +3,59 @@ import type { CommentResponseDto, CreateCommentDto, UpdateCommentDto } from '../
 import type { PaginationSortParams, PaginatedSortedResponse } from '../../domain/types/pagination.types.js';
 import type { Comment } from '../../domain/entities/comment.entity.js';
 import type { CommentDocument } from '../../infrastructure/types/comment.document.types.js';
+import type { CommentLikeStatus } from '../../domain/types/comment.types.js';
 import { commentsRepository } from '../../infrastructure/database/repositories/comments.repository.js';
+import { commentLikesRepository } from '../../infrastructure/database/repositories/comment-likes.repository.js';
 import { usersService } from './users.service.js';
 import { postsService } from './posts.service.js';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
 import { createPaginatedResponse } from '../../shared/utils/pagination.utils.js';
+import type { LikesAggregation, UserStatusAggregation } from '../../infrastructure/types/likes-aggregation.types.js';
 
 export const commentsService = {
   async getCommentsByPostId(
     postId: string,
-    params: PaginationSortParams
+    params: PaginationSortParams,
+    currentUserId: string | undefined
   ): Promise<PaginatedSortedResponse<CommentResponseDto>> {
     const post = await postsService.getPostById(postId);
     if (!post) {
       throw new Error(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
-    const { items, totalCount }: { items: CommentDocument[]; totalCount: number } =
-      await commentsRepository.findByPostId(postId, params);
-    const comments: CommentResponseDto[] = this._mapCommentsToResponseDto(items);
-    return createPaginatedResponse<CommentResponseDto>(comments, totalCount, params);
+    const { items, totalCount } = await commentsRepository.findByPostId(postId, params);
+
+    const commentIds: string[] = items.map(comment => comment.id);
+
+    const [likesAggregation, userStatuses] = await Promise.all([
+      commentLikesRepository.getLikesAggregation(commentIds),
+      currentUserId
+        ? commentLikesRepository.getUserStatuses(commentIds, currentUserId)
+        : Promise.resolve<UserStatusAggregation>({}),
+    ]);
+
+    const comments: CommentResponseDto[] = this._mapCommentsToResponseDto(items, likesAggregation, userStatuses);
+
+    return createPaginatedResponse(comments, totalCount, params);
   },
 
-  async getCommentById(id: string): Promise<CommentResponseDto | null> {
+  async getCommentById(id: string, currentUserId: string | undefined): Promise<CommentResponseDto | null> {
     const comment: CommentDocument | null = await commentsRepository.findById(id);
-    return comment ? this._mapCommentToResponseDto(comment) : null;
+    if (!comment) {
+      return null;
+    }
+
+    const commentIds: string[] = [comment.id]; // умышленно создаем массив из одного элемента, чтобы использовать в агрегации
+    const likesAggregationPromise = commentLikesRepository.getLikesAggregation(commentIds);
+    const userStatusesPromise = currentUserId
+      ? commentLikesRepository.getUserStatuses(commentIds, currentUserId)
+      : Promise.resolve<UserStatusAggregation>({});
+    const [likesAggregation, userStatuses]: [LikesAggregation, UserStatusAggregation] = await Promise.all([
+      likesAggregationPromise,
+      userStatusesPromise,
+    ]);
+
+    return this._mapCommentToResponseDto(comment, likesAggregation, userStatuses);
   },
 
   async createComment(postId: string, userId: string, data: CreateCommentDto): Promise<CommentResponseDto> {
@@ -85,16 +113,32 @@ export const commentsService = {
     return await commentsRepository.delete(commentId);
   },
 
-  _mapCommentToResponseDto(comment: CommentDocument): CommentResponseDto {
+  _mapCommentToResponseDto(
+    comment: CommentDocument,
+    likesAggregation: LikesAggregation = {},
+    userStatuses: UserStatusAggregation = {}
+  ): CommentResponseDto {
+    const statuses = likesAggregation[comment.id] ?? { likesCount: 0, dislikesCount: 0 };
+    const myStatus: CommentLikeStatus = userStatuses[comment.id] ?? 'None';
+
     return {
       id: comment.id,
       content: comment.content,
       commentatorInfo: comment.commentatorInfo,
       createdAt: comment.createdAt,
+      likesInfo: {
+        likesCount: statuses.likesCount,
+        dislikesCount: statuses.dislikesCount,
+        myStatus,
+      },
     };
   },
 
-  _mapCommentsToResponseDto(comments: CommentDocument[]): CommentResponseDto[] {
-    return comments.map(comment => this._mapCommentToResponseDto(comment));
+  _mapCommentsToResponseDto(
+    comments: CommentDocument[],
+    likesAggregation: LikesAggregation = {},
+    userStatuses: UserStatusAggregation = {}
+  ): CommentResponseDto[] {
+    return comments.map(comment => this._mapCommentToResponseDto(comment, likesAggregation, userStatuses));
   },
 };

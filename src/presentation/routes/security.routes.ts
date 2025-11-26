@@ -9,7 +9,7 @@ const router = Router();
 
 router.get('/devices', refreshAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId: string = req.userId;
+    const userId: string = req.userId!;
     const devices: DeviceResponseDto[] = await devicesService.getUserDevices(userId);
     res.status(HTTP_STATUSES.OK).send(devices);
   } catch (error) {
@@ -19,7 +19,7 @@ router.get('/devices', refreshAuthMiddleware, async (req: Request, res: Response
 
 router.delete('/devices', refreshAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId: string = req.userId;
+    const userId: string = req.userId!;
     const deviceId: string = req.deviceId;
     await devicesService.deleteOtherDevices(userId, deviceId);
     res.sendStatus(HTTP_STATUSES.NO_CONTENT);
@@ -33,7 +33,7 @@ router.delete(
   refreshAuthMiddleware,
   async (req: RequestWithParams<ParamsDeviceId>, res: Response) => {
     try {
-      const userId: string = req.userId;
+      const userId: string = req.userId!;
       const { deviceId }: ParamsDeviceId = req.params;
       const result: DeleteDeviceResult = await devicesService.deleteDevice(deviceId, userId);
 

@@ -5,7 +5,11 @@ import { HTTP_STATUSES } from '../../shared/constants/http-statuses.js';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
 import type { PostResponseDto, CreatePostDto, UpdatePostDto } from '../../application/dto/post.dto.js';
 import type { CommentResponseDto, CreateCommentDto } from '../../application/dto/comment.dto.js';
-import type { PaginatedSortedResponse, PaginationSortQuery, PaginationSortParams } from '../../domain/types/pagination.types.js';
+import type {
+  PaginatedSortedResponse,
+  PaginationSortQuery,
+  PaginationSortParams,
+} from '../../domain/types/pagination.types.js';
 import {
   RequestWithQuery,
   RequestWithParams,
@@ -17,6 +21,7 @@ import {
 } from '../../shared/types/express-request.types.js';
 import { basicAuthMiddleware } from '../middlewares/basic-auth.middleware.js';
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
+import { optionalBearerAuthMiddleware } from '../middlewares/optional-bearer-auth.middleware.js';
 import { postValidationMiddleware } from '../middlewares/validation/post.validation.js';
 import { createCommentValidationMiddleware } from '../middlewares/validation/comment.validation.js';
 import { getPaginationSortParams } from '../../shared/utils/pagination-sort.utils.js';
@@ -116,14 +121,17 @@ router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsI
 });
 
 router.get(
-  '/:id/comments',
+  '/:postId/comments',
+  optionalBearerAuthMiddleware,
   async (req: RequestWithParamsAndQuery<ParamsPostId, PaginationSortQuery>, res: Response) => {
     try {
       const { postId }: ParamsPostId = req.params;
       const paginationParams: PaginationSortParams = getPaginationSortParams(req.query, 'comments');
+      const currentUserId: string | undefined = req.userId;
       const comments: PaginatedSortedResponse<CommentResponseDto> = await commentsService.getCommentsByPostId(
         postId,
-        paginationParams
+        paginationParams,
+        currentUserId
       );
       res.status(HTTP_STATUSES.OK).send(comments);
     } catch (error) {
@@ -143,7 +151,7 @@ router.post(
     try {
       const { postId }: ParamsPostId = req.params;
       const { content }: CreateCommentDto = req.body;
-      const userId: string = req.userId;
+      const userId: string = req.userId!;
       const comment: CommentResponseDto = await commentsService.createComment(postId, userId, {
         content,
       });
@@ -158,4 +166,3 @@ router.post(
 );
 
 export default router;
-

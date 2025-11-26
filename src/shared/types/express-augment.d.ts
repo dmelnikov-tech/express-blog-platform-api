@@ -2,7 +2,7 @@ import 'express';
 
 declare module 'express-serve-static-core' {
   interface Request {
-    userId: string;
+    userId?: string; //TODO: ???
     deviceId: string;
   }
 }

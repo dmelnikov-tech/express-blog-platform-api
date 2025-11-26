@@ -129,7 +129,7 @@ router.post('/logout', refreshAuthMiddleware, async (req: Request, res: Response
 router.post('/refresh-token', refreshAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const deviceId: string = req.deviceId;
-    const userId: string = req.userId;
+    const userId: string = req.userId!;
     const tokens: LoginResult | null = await authService.refreshToken(deviceId, userId);
 
     if (!tokens) {
@@ -148,7 +148,7 @@ router.post('/refresh-token', refreshAuthMiddleware, async (req: Request, res: R
 
 router.get('/me', bearerAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId: string = req.userId;
+    const userId: string = req.userId!;
 
     const user: UserResponseDto | null = await usersService.getUserById(userId);
 
