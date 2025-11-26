@@ -1,6 +1,9 @@
 import { DeleteResult } from 'mongodb';
+import { randomUUID } from 'crypto';
 import type { LikesAggregation, UserStatusAggregation } from '../../types/likes-aggregation.types.js';
 import type { CommentLikeDocument } from '../../types/comment-like.document.types.js';
+import type { CommentLikeStatus } from '../../../domain/types/comment.types.js';
+import type { CommentLike } from '../../../domain/entities/comment-like.entity.js';
 import { getDatabase } from '../mongodb.js';
 import { COLLECTIONS } from '../collections.js';
 
@@ -51,6 +54,48 @@ export const commentLikesRepository = {
       .toArray();
 
     return Object.fromEntries(userLikes.map(like => [like.commentId, like.likeStatus]));
+  },
+
+  async getUserStatus(commentId: string, userId: string): Promise<CommentLikeStatus> {
+    const collection = getCollection();
+    const like: CommentLikeDocument | null = await collection.findOne({ commentId, userId });
+    return like?.likeStatus ?? 'None';
+  },
+
+  async updateLikeStatus(
+    commentId: string,
+    userId: string,
+    likeStatus: CommentLikeStatus
+  ): Promise<CommentLikeDocument | null> {
+    const collection = getCollection();
+    const existingLike: CommentLikeDocument | null = await collection.findOne({ commentId, userId });
+
+    if (likeStatus === 'None') {
+      if (existingLike) {
+        await collection.deleteOne({ commentId, userId });
+      }
+      return null;
+    }
+
+    const now = new Date().toISOString();
+    if (existingLike) {
+      return await collection.findOneAndUpdate(
+        { commentId, userId },
+        { $set: { likeStatus, updatedAt: now } }
+      );
+    }
+
+    const newLike: CommentLike = {
+      id: randomUUID(),
+      commentId,
+      userId,
+      likeStatus,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await collection.insertOne(newLike as CommentLikeDocument);
+    return newLike as CommentLikeDocument;
   },
 
   async deleteAll(): Promise<boolean> {

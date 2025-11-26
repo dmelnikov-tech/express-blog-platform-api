@@ -2,7 +2,7 @@ import { Router, Response, Request } from 'express';
 import { HTTP_STATUSES } from '../../shared/constants/http-statuses.js';
 import { devicesService } from '../../application/services/devices.service.js';
 import { refreshAuthMiddleware } from '../middlewares/refresh-auth.middleware.js';
-import { ParamsDeviceId, RequestWithParams } from '../../shared/types/express-request.types.js';
+import { ParamsId, RequestWithParams } from '../../shared/types/express-request.types.js';
 import type { DeviceResponseDto, DeleteDeviceResult } from '../../application/dto/device.dto.js';
 
 const router = Router();
@@ -29,13 +29,13 @@ router.delete('/devices', refreshAuthMiddleware, async (req: Request, res: Respo
 });
 
 router.delete(
-  '/devices/:deviceId',
+  '/devices/:id',
   refreshAuthMiddleware,
-  async (req: RequestWithParams<ParamsDeviceId>, res: Response) => {
+  async (req: RequestWithParams<ParamsId>, res: Response) => {
     try {
       const userId: string = req.userId!;
-      const { deviceId }: ParamsDeviceId = req.params;
-      const result: DeleteDeviceResult = await devicesService.deleteDevice(deviceId, userId);
+      const { id }: ParamsId = req.params;
+      const result: DeleteDeviceResult = await devicesService.deleteDevice(id, userId);
 
       if (result.notFound) {
         return res.sendStatus(HTTP_STATUSES.NOT_FOUND);

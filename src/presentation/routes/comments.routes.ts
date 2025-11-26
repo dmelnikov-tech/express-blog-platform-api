@@ -7,6 +7,9 @@ import { RequestWithParams, RequestWithParamsAndBody, ParamsId } from '../../sha
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
 import { optionalBearerAuthMiddleware } from '../middlewares/optional-bearer-auth.middleware.js';
 import { createCommentValidationMiddleware } from '../middlewares/validation/comment.validation.js';
+import { ParamsCommentId } from '../../shared/types/express-request.types.js';
+import { UpdateCommentLikeStatusDto } from '../../application/dto/comment-like.dto.js';
+import { updateCommentLikeStatusValidationMiddleware } from '../middlewares/validation/comment-like.validation.js';
 
 const router = Router();
 
@@ -79,5 +82,27 @@ router.delete('/:id', bearerAuthMiddleware, async (req: RequestWithParams<Params
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
 });
+
+router.put(
+  '/:commentId/like-status',
+  bearerAuthMiddleware,
+  updateCommentLikeStatusValidationMiddleware,
+  async (req: RequestWithParamsAndBody<ParamsCommentId, UpdateCommentLikeStatusDto>, res: Response) => {
+    try {
+      const { commentId }: ParamsCommentId = req.params;
+      const { likeStatus }: UpdateCommentLikeStatusDto = req.body;
+      const userId: string = req.userId!;
+      const updateResult: boolean = await commentsService.updateCommentLikeStatus(commentId, userId, likeStatus);
+
+      if (!updateResult) {
+        return res.sendStatus(HTTP_STATUSES.NOT_FOUND);
+      }
+
+      res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+    } catch (error) {
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    }
+  }
+);
 
 export default router;

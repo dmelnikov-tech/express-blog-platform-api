@@ -113,6 +113,22 @@ export const commentsService = {
     return await commentsRepository.delete(commentId);
   },
 
+  async updateCommentLikeStatus(commentId: string, userId: string, likeStatus: CommentLikeStatus): Promise<boolean> {
+    const comment = await commentsRepository.findById(commentId);
+    if (!comment) {
+      return false;
+    }
+
+    const currentStatus: CommentLikeStatus = await commentLikesRepository.getUserStatus(commentId, userId);
+
+    if (currentStatus === likeStatus) {
+      return true;
+    }
+
+    await commentLikesRepository.updateLikeStatus(commentId, userId, likeStatus);
+    return true;
+  },
+
   _mapCommentToResponseDto(
     comment: CommentDocument,
     likesAggregation: LikesAggregation = {},
