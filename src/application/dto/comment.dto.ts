@@ -1,4 +1,4 @@
-import type { CommentLikeStatus } from '../../domain/types/comment.types.js';
+import type { LikeStatus } from '../../domain/types/like.types.js';
 
 export interface CommentResponseDto {
   id: string;
@@ -11,7 +11,7 @@ export interface CommentResponseDto {
   likesInfo: {
     likesCount: number;
     dislikesCount: number;
-    myStatus: CommentLikeStatus;
+    myStatus: LikeStatus;
   };
 }
 

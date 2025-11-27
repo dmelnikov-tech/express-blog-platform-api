@@ -2,7 +2,7 @@ import { DeleteResult } from 'mongodb';
 import { randomUUID } from 'crypto';
 import type { LikesAggregation, UserStatusAggregation } from '../../types/likes-aggregation.types.js';
 import type { CommentLikeDocument } from '../../types/comment-like.document.types.js';
-import type { CommentLikeStatus } from '../../../domain/types/comment.types.js';
+import type { LikeStatus } from '../../../domain/types/like.types.js';
 import type { CommentLike } from '../../../domain/entities/comment-like.entity.js';
 import { getDatabase } from '../mongodb.js';
 import { COLLECTIONS } from '../collections.js';
@@ -56,7 +56,7 @@ export const commentLikesRepository = {
     return Object.fromEntries(userLikes.map(like => [like.commentId, like.likeStatus]));
   },
 
-  async getUserStatus(commentId: string, userId: string): Promise<CommentLikeStatus> {
+  async getUserStatus(commentId: string, userId: string): Promise<LikeStatus> {
     const collection = getCollection();
     const like: CommentLikeDocument | null = await collection.findOne({ commentId, userId });
     return like?.likeStatus ?? 'None';
@@ -65,7 +65,7 @@ export const commentLikesRepository = {
   async updateLikeStatus(
     commentId: string,
     userId: string,
-    likeStatus: CommentLikeStatus
+    likeStatus: LikeStatus
   ): Promise<CommentLikeDocument | null> {
     const collection = getCollection();
     const existingLike: CommentLikeDocument | null = await collection.findOne({ commentId, userId });
@@ -79,10 +79,7 @@ export const commentLikesRepository = {
 
     const now = new Date().toISOString();
     if (existingLike) {
-      return await collection.findOneAndUpdate(
-        { commentId, userId },
-        { $set: { likeStatus, updatedAt: now } }
-      );
+      return await collection.findOneAndUpdate({ commentId, userId }, { $set: { likeStatus, updatedAt: now } });
     }
 
     const newLike: CommentLike = {

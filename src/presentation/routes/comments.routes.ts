@@ -8,7 +8,7 @@ import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
 import { optionalBearerAuthMiddleware } from '../middlewares/optional-bearer-auth.middleware.js';
 import { createCommentValidationMiddleware } from '../middlewares/validation/comment.validation.js';
 import { ParamsCommentId } from '../../shared/types/express-request.types.js';
-import { UpdateCommentLikeStatusDto } from '../../application/dto/comment-like.dto.js';
+import { UpdateLikeStatusDto } from '../../application/dto/like.dto.js';
 import { updateCommentLikeStatusValidationMiddleware } from '../middlewares/validation/comment-like.validation.js';
 
 const router = Router();
@@ -87,10 +87,10 @@ router.put(
   '/:commentId/like-status',
   bearerAuthMiddleware,
   updateCommentLikeStatusValidationMiddleware,
-  async (req: RequestWithParamsAndBody<ParamsCommentId, UpdateCommentLikeStatusDto>, res: Response) => {
+  async (req: RequestWithParamsAndBody<ParamsCommentId, UpdateLikeStatusDto>, res: Response) => {
     try {
       const { commentId }: ParamsCommentId = req.params;
-      const { likeStatus }: UpdateCommentLikeStatusDto = req.body;
+      const { likeStatus }: UpdateLikeStatusDto = req.body;
       const userId: string = req.userId!;
       const updateResult: boolean = await commentsService.updateCommentLikeStatus(commentId, userId, likeStatus);
 

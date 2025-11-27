@@ -3,7 +3,7 @@ import type { CommentResponseDto, CreateCommentDto, UpdateCommentDto } from '../
 import type { PaginationSortParams, PaginatedSortedResponse } from '../../domain/types/pagination.types.js';
 import type { Comment } from '../../domain/entities/comment.entity.js';
 import type { CommentDocument } from '../../infrastructure/types/comment.document.types.js';
-import type { CommentLikeStatus } from '../../domain/types/comment.types.js';
+import type { LikeStatus } from '../../domain/types/like.types.js';
 import { commentsRepository } from '../../infrastructure/database/repositories/comments.repository.js';
 import { commentLikesRepository } from '../../infrastructure/database/repositories/comment-likes.repository.js';
 import { usersService } from './users.service.js';
@@ -113,13 +113,13 @@ export const commentsService = {
     return await commentsRepository.delete(commentId);
   },
 
-  async updateCommentLikeStatus(commentId: string, userId: string, likeStatus: CommentLikeStatus): Promise<boolean> {
+  async updateCommentLikeStatus(commentId: string, userId: string, likeStatus: LikeStatus): Promise<boolean> {
     const comment = await commentsRepository.findById(commentId);
     if (!comment) {
       return false;
     }
 
-    const currentStatus: CommentLikeStatus = await commentLikesRepository.getUserStatus(commentId, userId);
+    const currentStatus: LikeStatus = await commentLikesRepository.getUserStatus(commentId, userId);
 
     if (currentStatus === likeStatus) {
       return true;
@@ -135,7 +135,7 @@ export const commentsService = {
     userStatuses: UserStatusAggregation = {}
   ): CommentResponseDto {
     const statuses = likesAggregation[comment.id] ?? { likesCount: 0, dislikesCount: 0 };
-    const myStatus: CommentLikeStatus = userStatuses[comment.id] ?? 'None';
+    const myStatus: LikeStatus = userStatuses[comment.id] ?? 'None';
 
     return {
       id: comment.id,

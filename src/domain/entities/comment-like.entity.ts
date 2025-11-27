@@ -1,10 +1,10 @@
-import type { CommentLikeStatus } from '../types/comment.types.js';
+import type { LikeStatus } from '../types/like.types.js';
 
 export interface CommentLike {
   id: string;
   commentId: string;
   userId: string;
-  likeStatus: CommentLikeStatus;
+  likeStatus: LikeStatus;
   createdAt: string;
   updatedAt: string;
 }
