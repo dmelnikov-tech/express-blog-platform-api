@@ -8,10 +8,15 @@ export interface PostResponseDto {
   blogId: string;
   blogName: string;
   createdAt: string;
-  likesInfo: {
+  extendedLikesInfo: {
     likesCount: number;
     dislikesCount: number;
     myStatus: LikeStatus;
+    newestLikes: Array<{
+      addedAt: string;
+      userId: string;
+      login: string;
+    }>;
   };
 }
 

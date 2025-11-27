@@ -1,6 +1,10 @@
 import { DeleteResult } from 'mongodb';
 import { randomUUID } from 'crypto';
-import type { LikesAggregation, UserStatusAggregation } from '../../types/likes-aggregation.types.js';
+import type {
+  LikesAggregation,
+  UserStatusAggregation,
+  NewestLikesAggregation,
+} from '../../types/likes-aggregation.types.js';
 import type { PostLikeDocument } from '../../types/post-like.document.types.js';
 import type { LikeStatus } from '../../../domain/types/like.types.js';
 import type { PostLike } from '../../../domain/entities/post-like.entity.js';
@@ -62,11 +66,7 @@ export const postLikesRepository = {
     return like?.likeStatus ?? 'None';
   },
 
-  async updateLikeStatus(
-    postId: string,
-    userId: string,
-    likeStatus: LikeStatus
-  ): Promise<PostLikeDocument | null> {
+  async updateLikeStatus(postId: string, userId: string, likeStatus: LikeStatus): Promise<PostLikeDocument | null> {
     const collection = getCollection();
     const existingLike: PostLikeDocument | null = await collection.findOne({ postId, userId });
 
@@ -95,10 +95,46 @@ export const postLikesRepository = {
     return newLike as PostLikeDocument;
   },
 
+  async getNewestLikes(postIds: string[]): Promise<NewestLikesAggregation> {
+    if (!postIds.length) {
+      return {};
+    }
+
+    const collection = getCollection();
+
+    const docs = await collection
+      .aggregate([
+        { $match: { postId: { $in: postIds }, likeStatus: 'Like' } },
+        {
+          $group: {
+            _id: '$postId',
+            likes: {
+              $topN: {
+                n: 3,
+                sortBy: { createdAt: -1 },
+                output: {
+                  userId: '$userId',
+                  addedAt: '$createdAt',
+                },
+              },
+            },
+          },
+        },
+      ])
+      .toArray();
+
+    const result: NewestLikesAggregation = {};
+
+    for (const doc of docs) {
+      result[doc._id] = doc.likes;
+    }
+
+    return result;
+  },
+
   async deleteAll(): Promise<boolean> {
     const collection = getCollection();
     const result: DeleteResult = await collection.deleteMany({});
     return result.deletedCount > 0;
   },
 };
-

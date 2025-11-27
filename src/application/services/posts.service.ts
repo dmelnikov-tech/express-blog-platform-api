@@ -6,25 +6,42 @@ import type { PostDocument } from '../../infrastructure/types/post.document.type
 import type { LikeStatus } from '../../domain/types/like.types.js';
 import { postsRepository } from '../../infrastructure/database/repositories/posts.repository.js';
 import { postLikesRepository } from '../../infrastructure/database/repositories/post-likes.repository.js';
+import { usersRepository } from '../../infrastructure/database/repositories/users.repository.js';
 import { blogsService } from './blogs.service.js';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
 import { createPaginatedResponse } from '../../shared/utils/pagination.utils.js';
-import type { LikesAggregation, UserStatusAggregation } from '../../infrastructure/types/likes-aggregation.types.js';
+import type {
+  LikesAggregation,
+  UserStatusAggregation,
+  NewestLikesAggregation,
+  NewestLikesWithUsersAggregation,
+} from '../../infrastructure/types/likes-aggregation.types.js';
 
 export const postsService = {
-  async getPosts(params: PaginationSortParams, currentUserId?: string): Promise<PaginatedSortedResponse<PostResponseDto>> {
+  async getPosts(
+    params: PaginationSortParams,
+    currentUserId?: string
+  ): Promise<PaginatedSortedResponse<PostResponseDto>> {
     const { items, totalCount }: { items: PostDocument[]; totalCount: number } = await postsRepository.find(params);
-    
+
     const postsIds: string[] = items.map(post => post.id);
-    
-    const [likesAggregation, userStatuses] = await Promise.all([
+
+    const [likesAggregation, userStatuses, newestLikes] = await Promise.all([
       postLikesRepository.getLikesAggregation(postsIds),
       currentUserId
         ? postLikesRepository.getUserStatuses(postsIds, currentUserId)
         : Promise.resolve<UserStatusAggregation>({}),
+      postLikesRepository.getNewestLikes(postsIds),
     ]);
-    
-    const posts: PostResponseDto[] = this._mapPostsToResponseDto(items, likesAggregation, userStatuses);
+
+    const newestLikesWithUsers = await this._addUsersToNewestLikes(newestLikes);
+
+    const posts: PostResponseDto[] = this._mapPostsToResponseDto(
+      items,
+      likesAggregation,
+      userStatuses,
+      newestLikesWithUsers
+    );
     return createPaginatedResponse<PostResponseDto>(posts, totalCount, params);
   },
 
@@ -33,18 +50,29 @@ export const postsService = {
     params: PaginationSortParams,
     currentUserId?: string
   ): Promise<PaginatedSortedResponse<PostResponseDto>> {
-    const { items, totalCount }: { items: PostDocument[]; totalCount: number } = await postsRepository.findByBlogId(blogId, params);
-    
+    const { items, totalCount }: { items: PostDocument[]; totalCount: number } = await postsRepository.findByBlogId(
+      blogId,
+      params
+    );
+
     const postsIds: string[] = items.map(post => post.id);
-    
-    const [likesAggregation, userStatuses] = await Promise.all([
+
+    const [likesAggregation, userStatuses, newestLikes] = await Promise.all([
       postLikesRepository.getLikesAggregation(postsIds),
       currentUserId
         ? postLikesRepository.getUserStatuses(postsIds, currentUserId)
         : Promise.resolve<UserStatusAggregation>({}),
+      postLikesRepository.getNewestLikes(postsIds),
     ]);
-    
-    const posts: PostResponseDto[] = this._mapPostsToResponseDto(items, likesAggregation, userStatuses);
+
+    const newestLikesWithUsers = await this._addUsersToNewestLikes(newestLikes);
+
+    const posts: PostResponseDto[] = this._mapPostsToResponseDto(
+      items,
+      likesAggregation,
+      userStatuses,
+      newestLikesWithUsers
+    );
     return createPaginatedResponse<PostResponseDto>(posts, totalCount, params);
   },
 
@@ -59,12 +87,16 @@ export const postsService = {
     const userStatusesPromise = currentUserId
       ? postLikesRepository.getUserStatuses(postsIds, currentUserId)
       : Promise.resolve<UserStatusAggregation>({});
-    const [likesAggregation, userStatuses]: [LikesAggregation, UserStatusAggregation] = await Promise.all([
-      likesAggregationPromise,
-      userStatusesPromise,
-    ]);
+    const newestLikesPromise = postLikesRepository.getNewestLikes(postsIds);
+    const [likesAggregation, userStatuses, newestLikes]: [
+      LikesAggregation,
+      UserStatusAggregation,
+      NewestLikesAggregation
+    ] = await Promise.all([likesAggregationPromise, userStatusesPromise, newestLikesPromise]);
 
-    return this._mapPostToResponseDto(post, likesAggregation, userStatuses);
+    const newestLikesWithUsers = await this._addUsersToNewestLikes(newestLikes);
+
+    return this._mapPostToResponseDto(post, likesAggregation, userStatuses, newestLikesWithUsers);
   },
 
   async createPost(data: CreatePostDto): Promise<PostResponseDto> {
@@ -117,13 +149,44 @@ export const postsService = {
     return true;
   },
 
+  async _addUsersToNewestLikes(newestLikes: NewestLikesAggregation): Promise<NewestLikesWithUsersAggregation> {
+    const allUserIds = new Set<string>();
+    for (const likes of Object.values(newestLikes)) {
+      for (const like of likes) {
+        allUserIds.add(like.userId);
+      }
+    }
+
+    const users = await Promise.all(Array.from(allUserIds).map(userId => usersRepository.findById(userId)));
+
+    const usersMap = new Map<string, string>();
+    for (const user of users) {
+      if (user) {
+        usersMap.set(user.id, user.login);
+      }
+    }
+
+    const result: NewestLikesWithUsersAggregation = {};
+    for (const [postId, likes] of Object.entries(newestLikes)) {
+      result[postId] = likes.map(like => ({
+        addedAt: like.addedAt,
+        userId: like.userId,
+        login: usersMap.get(like.userId) ?? '',
+      }));
+    }
+
+    return result;
+  },
+
   _mapPostToResponseDto(
     post: PostDocument,
     likesAggregation: LikesAggregation = {},
-    userStatuses: UserStatusAggregation = {}
+    userStatuses: UserStatusAggregation = {},
+    newestLikesWithUsers: NewestLikesWithUsersAggregation = {}
   ): PostResponseDto {
     const statuses = likesAggregation[post.id] ?? { likesCount: 0, dislikesCount: 0 };
     const myStatus: LikeStatus = userStatuses[post.id] ?? 'None';
+    const newestLikes = newestLikesWithUsers[post.id] ?? [];
 
     return {
       id: post.id,
@@ -133,18 +196,20 @@ export const postsService = {
       blogId: post.blogId,
       blogName: post.blogName,
       createdAt: post.createdAt,
-      likesInfo: {
+      extendedLikesInfo: {
         likesCount: statuses.likesCount,
         dislikesCount: statuses.dislikesCount,
         myStatus,
+        newestLikes,
       },
     };
   },
   _mapPostsToResponseDto(
     posts: PostDocument[],
     likesAggregation: LikesAggregation = {},
-    userStatuses: UserStatusAggregation = {}
+    userStatuses: UserStatusAggregation = {},
+    newestLikesWithUsers: NewestLikesWithUsersAggregation = {}
   ): PostResponseDto[] {
-    return posts.map(post => this._mapPostToResponseDto(post, likesAggregation, userStatuses));
+    return posts.map(post => this._mapPostToResponseDto(post, likesAggregation, userStatuses, newestLikesWithUsers));
   },
 };
