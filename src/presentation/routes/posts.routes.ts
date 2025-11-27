@@ -24,24 +24,28 @@ import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
 import { optionalBearerAuthMiddleware } from '../middlewares/optional-bearer-auth.middleware.js';
 import { postValidationMiddleware } from '../middlewares/validation/post.validation.js';
 import { createCommentValidationMiddleware } from '../middlewares/validation/comment.validation.js';
+import { updatePostLikeStatusValidationMiddleware } from '../middlewares/validation/post-like.validation.js';
 import { getPaginationSortParams } from '../../shared/utils/pagination-sort.utils.js';
+import { UpdateLikeStatusDto } from '../../application/dto/like.dto.js';
 
 const router = Router();
 
-router.get('/', async (req: RequestWithQuery<PaginationSortQuery>, res: Response) => {
+router.get('/', optionalBearerAuthMiddleware, async (req: RequestWithQuery<PaginationSortQuery>, res: Response) => {
   try {
     const paginationParams: PaginationSortParams = getPaginationSortParams(req.query, 'posts');
-    const posts: PaginatedSortedResponse<PostResponseDto> = await postsService.getPosts(paginationParams);
+    const currentUserId: string | undefined = req.userId;
+    const posts: PaginatedSortedResponse<PostResponseDto> = await postsService.getPosts(paginationParams, currentUserId);
     res.status(HTTP_STATUSES.OK).send(posts);
   } catch (error) {
     res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
   }
 });
 
-router.get('/:id', async (req: RequestWithParams<ParamsId>, res: Response) => {
+router.get('/:id', optionalBearerAuthMiddleware, async (req: RequestWithParams<ParamsId>, res: Response) => {
   try {
     const { id }: ParamsId = req.params;
-    const post: PostResponseDto | null = await postsService.getPostById(id);
+    const currentUserId: string | undefined = req.userId;
+    const post: PostResponseDto | null = await postsService.getPostById(id, currentUserId);
 
     if (!post) {
       return res.sendStatus(HTTP_STATUSES.NOT_FOUND);
@@ -120,6 +124,29 @@ router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsI
   }
 });
 
+router.put(
+  '/:postId/like-status',
+  bearerAuthMiddleware,
+  updatePostLikeStatusValidationMiddleware,
+  async (req: RequestWithParamsAndBody<ParamsPostId, UpdateLikeStatusDto>, res: Response) => {
+    try {
+      const { postId }: ParamsPostId = req.params;
+      const { likeStatus }: UpdateLikeStatusDto = req.body;
+      const userId: string = req.userId!;
+      const updateResult: boolean = await postsService.updatePostLikeStatus(postId, userId, likeStatus);
+
+      if (!updateResult) {
+        return res.sendStatus(HTTP_STATUSES.NOT_FOUND);
+      }
+
+      res.sendStatus(HTTP_STATUSES.NO_CONTENT);
+    } catch (error) {
+      res.sendStatus(HTTP_STATUSES.INTERNAL_SERVER_ERROR);
+    }
+  }
+);
+
+// comments
 router.get(
   '/:postId/comments',
   optionalBearerAuthMiddleware,

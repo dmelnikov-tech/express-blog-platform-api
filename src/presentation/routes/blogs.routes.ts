@@ -21,6 +21,7 @@ import {
   ParamsBlogId,
 } from '../../shared/types/express-request.types.js';
 import { basicAuthMiddleware } from '../middlewares/basic-auth.middleware.js';
+import { optionalBearerAuthMiddleware } from '../middlewares/optional-bearer-auth.middleware.js';
 import { blogValidationMiddleware } from '../middlewares/validation/blog.validation.js';
 import { createPostForBlogValidationMiddleware } from '../middlewares/validation/post.validation.js';
 import { getPaginationSortParams } from '../../shared/utils/pagination-sort.utils.js';
@@ -113,6 +114,7 @@ router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsI
 
 router.get(
   '/:blogId/posts',
+  optionalBearerAuthMiddleware,
   async (req: RequestWithParamsAndQuery<ParamsBlogId, PaginationSortQuery>, res: Response) => {
     try {
       const { blogId }: ParamsBlogId = req.params;
@@ -123,9 +125,11 @@ router.get(
       }
 
       const paginationSortParams: PaginationSortParams = getPaginationSortParams(req.query, 'posts');
+      const currentUserId: string | undefined = req.userId;
       const posts: PaginatedSortedResponse<PostResponseDto> = await postsService.getPostsByBlogId(
         blogId,
-        paginationSortParams
+        paginationSortParams,
+        currentUserId
       );
       res.status(HTTP_STATUSES.OK).send(posts);
     } catch (error) {

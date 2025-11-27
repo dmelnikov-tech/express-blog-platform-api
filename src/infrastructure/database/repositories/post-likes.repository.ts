@@ -1,17 +1,17 @@
 import { DeleteResult } from 'mongodb';
 import { randomUUID } from 'crypto';
 import type { LikesAggregation, UserStatusAggregation } from '../../types/likes-aggregation.types.js';
-import type { CommentLikeDocument } from '../../types/comment-like.document.types.js';
+import type { PostLikeDocument } from '../../types/post-like.document.types.js';
 import type { LikeStatus } from '../../../domain/types/like.types.js';
-import type { CommentLike } from '../../../domain/entities/comment-like.entity.js';
+import type { PostLike } from '../../../domain/entities/post-like.entity.js';
 import { getDatabase } from '../mongodb.js';
 import { COLLECTIONS } from '../collections.js';
 
-const getCollection = () => getDatabase().collection<CommentLikeDocument>(COLLECTIONS.COMMENT_LIKES);
+const getCollection = () => getDatabase().collection<PostLikeDocument>(COLLECTIONS.POST_LIKES);
 
-export const commentLikesRepository = {
-  async getLikesAggregation(commentsIds: string[]): Promise<LikesAggregation | {}> {
-    if (!commentsIds.length) {
+export const postLikesRepository = {
+  async getLikesAggregation(postsIds: string[]): Promise<LikesAggregation | {}> {
+    if (!postsIds.length) {
       return {};
     }
 
@@ -22,10 +22,10 @@ export const commentLikesRepository = {
 
     const docs = await collection
       .aggregate([
-        { $match: { commentId: { $in: commentsIds } } },
+        { $match: { postId: { $in: postsIds } } },
         {
           $group: {
-            _id: '$commentId',
+            _id: '$postId',
             likesCount: { $sum: likeCond },
             dislikesCount: { $sum: dislikeCond },
           },
@@ -44,55 +44,55 @@ export const commentLikesRepository = {
     );
   },
 
-  async getUserStatuses(commentIds: string[], userId: string): Promise<UserStatusAggregation> {
-    if (!commentIds.length) return {};
+  async getUserStatuses(postIds: string[], userId: string): Promise<UserStatusAggregation> {
+    if (!postIds.length) return {};
 
     const collection = getCollection();
 
     const userLikes = await collection
-      .find({ commentId: { $in: commentIds }, userId }, { projection: { commentId: 1, likeStatus: 1, _id: 0 } })
+      .find({ postId: { $in: postIds }, userId }, { projection: { postId: 1, likeStatus: 1, _id: 0 } })
       .toArray();
 
-    return Object.fromEntries(userLikes.map(like => [like.commentId, like.likeStatus]));
+    return Object.fromEntries(userLikes.map(like => [like.postId, like.likeStatus]));
   },
 
-  async getUserStatus(commentId: string, userId: string): Promise<LikeStatus> {
+  async getUserStatus(postId: string, userId: string): Promise<LikeStatus> {
     const collection = getCollection();
-    const like: CommentLikeDocument | null = await collection.findOne({ commentId, userId });
+    const like: PostLikeDocument | null = await collection.findOne({ postId, userId });
     return like?.likeStatus ?? 'None';
   },
 
   async updateLikeStatus(
-    commentId: string,
+    postId: string,
     userId: string,
     likeStatus: LikeStatus
-  ): Promise<CommentLikeDocument | null> {
+  ): Promise<PostLikeDocument | null> {
     const collection = getCollection();
-    const existingLike: CommentLikeDocument | null = await collection.findOne({ commentId, userId });
+    const existingLike: PostLikeDocument | null = await collection.findOne({ postId, userId });
 
     if (likeStatus === 'None') {
       if (existingLike) {
-        await collection.deleteOne({ commentId, userId });
+        await collection.deleteOne({ postId, userId });
       }
       return null;
     }
 
     const now = new Date().toISOString();
     if (existingLike) {
-      return await collection.findOneAndUpdate({ commentId, userId }, { $set: { likeStatus, updatedAt: now } });
+      return await collection.findOneAndUpdate({ postId, userId }, { $set: { likeStatus, updatedAt: now } });
     }
 
-    const newLike: CommentLike = {
+    const newLike: PostLike = {
       id: randomUUID(),
-      commentId,
+      postId,
       userId,
       likeStatus,
       createdAt: now,
       updatedAt: now,
     };
 
-    await collection.insertOne(newLike as CommentLikeDocument);
-    return newLike as CommentLikeDocument;
+    await collection.insertOne(newLike as PostLikeDocument);
+    return newLike as PostLikeDocument;
   },
 
   async deleteAll(): Promise<boolean> {
@@ -101,3 +101,4 @@ export const commentLikesRepository = {
     return result.deletedCount > 0;
   },
 };
+

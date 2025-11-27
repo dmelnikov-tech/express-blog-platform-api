@@ -1,3 +1,5 @@
+import type { LikeStatus } from '../../domain/types/like.types.js';
+
 export interface PostResponseDto {
   id: string;
   title: string;
@@ -6,6 +8,11 @@ export interface PostResponseDto {
   blogId: string;
   blogName: string;
   createdAt: string;
+  likesInfo: {
+    likesCount: number;
+    dislikesCount: number;
+    myStatus: LikeStatus;
+  };
 }
 
 export interface CreatePostDto {

@@ -5,4 +5,5 @@ export const COLLECTIONS = {
   COMMENTS: 'comments',
   DEVICES: 'devices',
   COMMENT_LIKES: 'commentLikes',
+  POST_LIKES: 'postLikes',
 };

@@ -16,7 +16,7 @@ export const commentsService = {
   async getCommentsByPostId(
     postId: string,
     params: PaginationSortParams,
-    currentUserId: string | undefined
+    currentUserId?: string
   ): Promise<PaginatedSortedResponse<CommentResponseDto>> {
     const post = await postsService.getPostById(postId);
     if (!post) {
@@ -25,12 +25,12 @@ export const commentsService = {
 
     const { items, totalCount } = await commentsRepository.findByPostId(postId, params);
 
-    const commentIds: string[] = items.map(comment => comment.id);
+    const commentsIds: string[] = items.map(comment => comment.id);
 
     const [likesAggregation, userStatuses] = await Promise.all([
-      commentLikesRepository.getLikesAggregation(commentIds),
+      commentLikesRepository.getLikesAggregation(commentsIds),
       currentUserId
-        ? commentLikesRepository.getUserStatuses(commentIds, currentUserId)
+        ? commentLikesRepository.getUserStatuses(commentsIds, currentUserId)
         : Promise.resolve<UserStatusAggregation>({}),
     ]);
 
@@ -39,16 +39,16 @@ export const commentsService = {
     return createPaginatedResponse(comments, totalCount, params);
   },
 
-  async getCommentById(id: string, currentUserId: string | undefined): Promise<CommentResponseDto | null> {
+  async getCommentById(id: string, currentUserId?: string): Promise<CommentResponseDto | null> {
     const comment: CommentDocument | null = await commentsRepository.findById(id);
     if (!comment) {
       return null;
     }
 
-    const commentIds: string[] = [comment.id]; // умышленно создаем массив из одного элемента, чтобы использовать в агрегации
-    const likesAggregationPromise = commentLikesRepository.getLikesAggregation(commentIds);
+    const commentsIds: string[] = [comment.id]; // умышленно создаем массив из одного элемента, чтобы использовать в агрегации
+    const likesAggregationPromise = commentLikesRepository.getLikesAggregation(commentsIds);
     const userStatusesPromise = currentUserId
-      ? commentLikesRepository.getUserStatuses(commentIds, currentUserId)
+      ? commentLikesRepository.getUserStatuses(commentsIds, currentUserId)
       : Promise.resolve<UserStatusAggregation>({});
     const [likesAggregation, userStatuses]: [LikesAggregation, UserStatusAggregation] = await Promise.all([
       likesAggregationPromise,
