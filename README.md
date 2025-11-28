@@ -1,2 +1,116 @@
 # express-blog-platform-api
-A feature-complete backend API for a modern blogging platform. This Express.js application handles user authentication, CRUD operations for blog posts and comments, and serves as the foundation for a client-side blog application.
+
+Backend API для платформы блогов на Express.js. Реализует аутентификацию пользователей, CRUD операции для блогов, постов и комментариев, систему лайков, пагинацию и сортировку.
+
+## Архитектура
+
+Проект построен на **Clean Architecture** с четким разделением на слои:
+
+### Структура проекта
+
+```
+src/
+├── domain/              # Доменный слой (бизнес-логика)
+│   ├── entities/        # Сущности домена (Blog, Post, Comment, User и т.д.)
+│   └── types/           # Доменные типы
+│
+├── application/         # Слой приложения (use cases)
+│   ├── dto/            # Data Transfer Objects (DTO) для запросов/ответов
+│   └── services/       # Бизнес-логика приложения
+│
+├── infrastructure/     # Инфраструктурный слой
+│   ├── database/       # Работа с БД
+│   │   └── repositories/  # Репозитории для доступа к данным
+│   └── external/       # Внешние сервисы (JWT, Email, Password)
+│
+├── presentation/       # Слой представления (HTTP)
+│   ├── routes/         # Маршруты Express
+│   ├── middlewares/    # Middleware (auth, validation, rate-limit)
+│   └── utils/          # Утилиты для HTTP
+│
+└── shared/             # Общие компоненты
+    ├── constants/      # Константы
+    ├── types/          # Общие типы
+    └── utils/          # Общие утилиты
+```
+
+### Правила взаимодействия между слоями
+
+**Критически важно:** Сервисы работают только со своими репозиториями. Для доступа к данным других сущностей используются сервисы этих сущностей.
+
+**Пример:**
+
+- ❌ `auth.service` → `users.repository` (неправильно)
+- ✅ `auth.service` → `users.service` → `users.repository` (правильно)
+
+Это обеспечивает инкапсуляцию бизнес-логики и переиспользование кода.
+
+**Направление зависимостей:**
+
+```
+presentation → application → domain
+                ↓
+         infrastructure
+```
+
+- `presentation` зависит от `application`
+- `application` зависит от `domain` и использует `infrastructure`
+- `infrastructure` реализует интерфейсы из `domain`
+- `domain` не зависит ни от чего
+
+## Технологии и инструменты
+
+### Backend
+
+- **Express.js** (v5) - веб-фреймворк
+- **TypeScript** - типизация
+- **MongoDB** - база данных
+- **MongoDB Native Driver** - работа с БД без ODM
+
+### Аутентификация и безопасность
+
+- **JWT** (jsonwebtoken) - токены доступа и обновления
+- **bcrypt** - хеширование паролей
+- **express-validator** - валидация входных данных
+- **express-rate-limit** - защита от DDoS
+- **cookie-parser** - работа с cookies
+
+### Внешние сервисы
+
+- **Nodemailer** - отправка email (подтверждение регистрации, восстановление пароля)
+
+### Инструменты разработки
+
+- **tsx** - выполнение TypeScript без компиляции
+- **nodemon** - автоматическая перезагрузка при изменениях
+- **dotenv** - управление переменными окружения
+
+## Основные возможности
+
+- Аутентификация и авторизация (JWT, refresh tokens)
+- CRUD операции для блогов, постов, комментариев
+- Система лайков/дизлайков для постов и комментариев
+- Пагинация и сортировка
+- Валидация входных данных
+- Rate limiting
+- Email регистрация, подтверждение регистрации и восстановление пароля
+
+## Запуск проекта
+
+```bash
+# Установка зависимостей
+npm install
+
+# Разработка
+npm run dev
+
+# Сборка
+npm run build
+
+# Запуск production
+npm start
+```
+
+## Переменные окружения
+
+Создайте `.env` файл с необходимыми переменными (MongoDB URI, JWT secrets, SMTP настройки и т.д.)
