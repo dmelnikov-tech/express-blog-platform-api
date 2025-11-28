@@ -9,7 +9,7 @@ import { optionalBearerAuthMiddleware } from '../middlewares/optional-bearer-aut
 import { createCommentValidationMiddleware } from '../middlewares/validation/comment.validation.js';
 import { ParamsCommentId } from '../../shared/types/express-request.types.js';
 import { UpdateLikeStatusDto } from '../../application/dto/like.dto.js';
-import { updateCommentLikeStatusValidationMiddleware } from '../middlewares/validation/comment-like.validation.js';
+import { updateLikeStatusValidationMiddleware } from '../middlewares/validation/like.validation.js';
 
 const router = Router();
 
@@ -86,7 +86,7 @@ router.delete('/:id', bearerAuthMiddleware, async (req: RequestWithParams<Params
 router.put(
   '/:commentId/like-status',
   bearerAuthMiddleware,
-  updateCommentLikeStatusValidationMiddleware,
+  updateLikeStatusValidationMiddleware,
   async (req: RequestWithParamsAndBody<ParamsCommentId, UpdateLikeStatusDto>, res: Response) => {
     try {
       const { commentId }: ParamsCommentId = req.params;

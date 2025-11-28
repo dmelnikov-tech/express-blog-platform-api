@@ -5,11 +5,8 @@ import { HTTP_STATUSES } from '../../shared/constants/http-statuses.js';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
 import type { PostResponseDto, CreatePostDto, UpdatePostDto } from '../../application/dto/post.dto.js';
 import type { CommentResponseDto, CreateCommentDto } from '../../application/dto/comment.dto.js';
-import type {
-  PaginatedSortedResponse,
-  PaginationSortQuery,
-  PaginationSortParams,
-} from '../../domain/types/pagination.types.js';
+import type { PaginatedSortedResponse, PaginationSortParams } from '../../domain/types/pagination.types.js';
+import type { PaginationSortDto } from '../../application/dto/pagination.dto.js';
 import {
   RequestWithQuery,
   RequestWithParams,
@@ -24,13 +21,13 @@ import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
 import { optionalBearerAuthMiddleware } from '../middlewares/optional-bearer-auth.middleware.js';
 import { postValidationMiddleware } from '../middlewares/validation/post.validation.js';
 import { createCommentValidationMiddleware } from '../middlewares/validation/comment.validation.js';
-import { updatePostLikeStatusValidationMiddleware } from '../middlewares/validation/post-like.validation.js';
+import { updateLikeStatusValidationMiddleware } from '../middlewares/validation/like.validation.js';
 import { getPaginationSortParams } from '../../shared/utils/pagination-sort.utils.js';
 import { UpdateLikeStatusDto } from '../../application/dto/like.dto.js';
 
 const router = Router();
 
-router.get('/', optionalBearerAuthMiddleware, async (req: RequestWithQuery<PaginationSortQuery>, res: Response) => {
+router.get('/', optionalBearerAuthMiddleware, async (req: RequestWithQuery<PaginationSortDto>, res: Response) => {
   try {
     const paginationParams: PaginationSortParams = getPaginationSortParams(req.query, 'posts');
     const currentUserId: string | undefined = req.userId;
@@ -127,7 +124,7 @@ router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsI
 router.put(
   '/:postId/like-status',
   bearerAuthMiddleware,
-  updatePostLikeStatusValidationMiddleware,
+  updateLikeStatusValidationMiddleware,
   async (req: RequestWithParamsAndBody<ParamsPostId, UpdateLikeStatusDto>, res: Response) => {
     try {
       const { postId }: ParamsPostId = req.params;
@@ -150,7 +147,7 @@ router.put(
 router.get(
   '/:postId/comments',
   optionalBearerAuthMiddleware,
-  async (req: RequestWithParamsAndQuery<ParamsPostId, PaginationSortQuery>, res: Response) => {
+  async (req: RequestWithParamsAndQuery<ParamsPostId, PaginationSortDto>, res: Response) => {
     try {
       const { postId }: ParamsPostId = req.params;
       const paginationParams: PaginationSortParams = getPaginationSortParams(req.query, 'comments');

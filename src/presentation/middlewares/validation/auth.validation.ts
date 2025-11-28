@@ -50,20 +50,6 @@ export const confirmationCodeValidationMiddleware = [
   handleValidationErrors,
 ];
 
-export const passwordRecoveryValidationMiddleware = [
-  body('email')
-    .isString()
-    .withMessage('email must be a string')
-    .bail()
-    .trim()
-    .notEmpty()
-    .withMessage('email should not be empty')
-    .bail()
-    .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)
-    .withMessage('email must match pattern ^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$'),
-  handleValidationErrors,
-];
-
 export const newPasswordValidationMiddleware = [
   body('newPassword')
     .isString()

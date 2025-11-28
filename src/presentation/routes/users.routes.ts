@@ -2,11 +2,8 @@ import { Router, Response } from 'express';
 import { usersService } from '../../application/services/users.service.js';
 import { HTTP_STATUSES } from '../../shared/constants/http-statuses.js';
 import type { UserResponseDto, CreateUserDto, CreateUserResult } from '../../application/dto/user.dto.js';
-import type {
-  PaginatedSortedResponse,
-  UserPaginationSortParams,
-  UserPaginationSortQuery,
-} from '../../domain/types/pagination.types.js';
+import type { PaginatedSortedResponse, UserPaginationSortParams } from '../../domain/types/pagination.types.js';
+import type { UserPaginationSortDto } from '../../application/dto/pagination.dto.js';
 import {
   RequestWithQuery,
   RequestWithParams,
@@ -19,7 +16,7 @@ import { getPaginationSortParams } from '../../shared/utils/pagination-sort.util
 
 const router = Router();
 
-router.get('/', basicAuthMiddleware, async (req: RequestWithQuery<UserPaginationSortQuery>, res: Response) => {
+router.get('/', basicAuthMiddleware, async (req: RequestWithQuery<UserPaginationSortDto>, res: Response) => {
   try {
     const paginationSortParams: UserPaginationSortParams = getPaginationSortParams(req.query, 'users');
     const users: PaginatedSortedResponse<UserResponseDto> = await usersService.getUsers(paginationSortParams);

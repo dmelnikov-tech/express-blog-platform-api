@@ -17,12 +17,14 @@ export const commentLikesRepository = {
 
     const collection = getCollection();
 
+    // Условное выражение MongoDB: Если likeStatus === 'Like', вернуть 1, иначе 0. Это нужно, чтобы затем можно было считать лайки/дизлайки через $sum.
     const likeCond = { $cond: [{ $eq: ['$likeStatus', 'Like'] }, 1, 0] };
     const dislikeCond = { $cond: [{ $eq: ['$likeStatus', 'Dislike'] }, 1, 0] };
 
     const docs = await collection
       .aggregate([
         { $match: { commentId: { $in: commentsIds } } },
+        // Группируем лайки и дизлайки по commentId. Каждая группа — это один комментарий.
         {
           $group: {
             _id: '$commentId',
@@ -34,6 +36,8 @@ export const commentLikesRepository = {
       .toArray();
 
     return Object.fromEntries(
+       // Преобразуем массив вида: [{ _id: 'c1', likesCount: 2, dislikesCount: 1 }, ...]
+       // в объект: { c1: { likesCount: 2, dislikesCount: 1 }, ... } Это удобнее для дальнейшего доступа по commentId.
       docs.map(d => [
         d._id,
         {

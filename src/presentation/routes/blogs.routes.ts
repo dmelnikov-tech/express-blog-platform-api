@@ -5,12 +5,8 @@ import { HTTP_STATUSES } from '../../shared/constants/http-statuses.js';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages.js';
 import type { BlogResponseDto, CreateBlogDto, UpdateBlogDto } from '../../application/dto/blog.dto.js';
 import type { PostResponseDto, CreatePostByBlogIdDto } from '../../application/dto/post.dto.js';
-import type {
-  PaginatedSortedResponse,
-  PaginationSortParams,
-  PaginationSortQuery,
-  BlogPaginationSortParams,
-} from '../../domain/types/pagination.types.js';
+import type { PaginatedSortedResponse, PaginationSortParams, BlogPaginationSortParams } from '../../domain/types/pagination.types.js';
+import type { PaginationSortDto } from '../../application/dto/pagination.dto.js';
 import {
   RequestWithQuery,
   RequestWithParams,
@@ -28,7 +24,7 @@ import { getPaginationSortParams } from '../../shared/utils/pagination-sort.util
 
 const router = Router();
 
-router.get('/', async (req: RequestWithQuery<PaginationSortQuery>, res: Response) => {
+router.get('/', async (req: RequestWithQuery<PaginationSortDto>, res: Response) => {
   try {
     const paginationSortParams: BlogPaginationSortParams = getPaginationSortParams(req.query, 'blogs');
     const result: PaginatedSortedResponse<BlogResponseDto> = await blogsService.getBlogs(paginationSortParams);
@@ -115,7 +111,7 @@ router.delete('/:id', basicAuthMiddleware, async (req: RequestWithParams<ParamsI
 router.get(
   '/:blogId/posts',
   optionalBearerAuthMiddleware,
-  async (req: RequestWithParamsAndQuery<ParamsBlogId, PaginationSortQuery>, res: Response) => {
+  async (req: RequestWithParamsAndQuery<ParamsBlogId, PaginationSortDto>, res: Response) => {
     try {
       const { blogId }: ParamsBlogId = req.params;
       const blog: BlogResponseDto | null = await blogsService.getBlogById(blogId);

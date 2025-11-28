@@ -10,14 +10,13 @@ import {
   loginValidationMiddleware,
   emailValidationMiddleware,
   confirmationCodeValidationMiddleware,
-  passwordRecoveryValidationMiddleware,
   newPasswordValidationMiddleware,
 } from '../middlewares/validation/auth.validation.js';
 import { createUserValidationMiddleware } from '../middlewares/validation/user.validation.js';
 import { bearerAuthMiddleware } from '../middlewares/bearer-auth.middleware.js';
 import { refreshAuthMiddleware } from '../middlewares/refresh-auth.middleware.js';
 import { createRateLimitMiddleware } from '../middlewares/rate-limit.middleware.js';
-import { REFRESH_TOKEN_COOKIE_OPTIONS } from '../utils/cookie.utils.js';
+import { REFRESH_TOKEN_COOKIE_OPTIONS } from '../../shared/constants/auth.constants.js';
 import { sendErrorResponse } from '../utils/response.utils.js';
 
 const router = Router();
@@ -169,7 +168,7 @@ router.get('/me', bearerAuthMiddleware, async (req: Request, res: Response) => {
 router.post(
   '/password-recovery',
   createRateLimitMiddleware('/password-recovery'),
-  passwordRecoveryValidationMiddleware,
+  emailValidationMiddleware,
   async (req: RequestWithBody<PasswordRecoveryDto>, res: Response) => {
     try {
       const { email }: PasswordRecoveryDto = req.body;

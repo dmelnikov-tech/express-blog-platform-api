@@ -1,11 +1,13 @@
 import type {
   PaginationSortParams,
-  PaginationSortQuery,
   UserPaginationSortParams,
-  UserPaginationSortQuery,
   BlogPaginationSortParams,
-  BlogPaginationSortQuery,
 } from '../../domain/types/pagination.types.js';
+import type {
+  PaginationSortDto,
+  UserPaginationSortDto,
+  BlogPaginationSortDto,
+} from '../../application/dto/pagination.dto.js';
 
 const BLOG_SORT_FIELDS: string[] = ['id', 'name', 'description', 'websiteUrl', 'createdAt', 'isMembership'];
 const POST_SORT_FIELDS: string[] = ['id', 'title', 'shortDescription', 'content', 'blogId', 'blogName', 'createdAt'];
@@ -13,7 +15,7 @@ const USER_SORT_FIELDS: string[] = ['id', 'login', 'email', 'createdAt'];
 const COMMENT_SORT_FIELDS: string[] = ['id', 'content', 'createdAt'];
 
 export function getPaginationSortParams(
-  query: PaginationSortQuery | BlogPaginationSortQuery | UserPaginationSortQuery,
+  query: PaginationSortDto | BlogPaginationSortDto | UserPaginationSortDto,
   entityType: 'blogs' | 'posts' | 'users' | 'comments'
 ): PaginationSortParams | BlogPaginationSortParams | UserPaginationSortParams {
   const sortBy: string | undefined = typeof query.sortBy === 'string' ? query.sortBy : undefined;
@@ -24,6 +26,7 @@ export function getPaginationSortParams(
   const pageSize: number | undefined = typeof query.pageSize === 'string' ? parseInt(query.pageSize, 10) : undefined;
 
   let validSortFields: string[];
+
   switch (entityType) {
     case 'blogs':
       validSortFields = BLOG_SORT_FIELDS;
@@ -40,15 +43,21 @@ export function getPaginationSortParams(
     default:
       throw new Error(`Invalid entity type: ${entityType}`);
   }
+
+  // Проверяем, что поле сортировки реально существует для выбранной сущности.
+  // Если его нет используем createdAt по умолчанию.
   const validSortBy: string = sortBy && validSortFields.includes(sortBy) ? sortBy : 'createdAt';
 
   const baseParams: PaginationSortParams = {
     sortBy: validSortBy,
     sortDirection: sortDirection === 'asc' ? 'asc' : 'desc',
+
+    // Проверяем, что значения пагинации это валидные числа или выставляем дефолт
     pageNumber: pageNumber && pageNumber > 0 ? pageNumber : 1,
     pageSize: pageSize && pageSize > 0 ? pageSize : 10,
   };
 
+  // Для блогов добавляем специфичный параметр поиска по name.
   if (entityType === 'blogs') {
     const searchNameTerm: string | undefined =
       'searchNameTerm' in query && typeof query.searchNameTerm === 'string' ? query.searchNameTerm : undefined;
@@ -56,16 +65,21 @@ export function getPaginationSortParams(
       ...baseParams,
       searchNameTerm,
     } as BlogPaginationSortParams;
+
+  // Для пользователей добавляем специфичные параметры фильтрации по email/login.
   } else if (entityType === 'users') {
     const searchLoginTerm: string | undefined =
       'searchLoginTerm' in query && typeof query.searchLoginTerm === 'string' ? query.searchLoginTerm : undefined;
     const searchEmailTerm: string | undefined =
       'searchEmailTerm' in query && typeof query.searchEmailTerm === 'string' ? query.searchEmailTerm : undefined;
+
     return {
       ...baseParams,
       searchLoginTerm,
       searchEmailTerm,
     } as UserPaginationSortParams;
+
+  // Для остальных сущностей ничего специфичного — возвращаем базовые параметры.
   } else {
     return baseParams as PaginationSortParams;
   }

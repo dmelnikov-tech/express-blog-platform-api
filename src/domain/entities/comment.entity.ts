@@ -9,5 +9,3 @@ export interface Comment {
   postId: string;
 }
 
-//TODO: тут нужно добавить likesInfo ?
-

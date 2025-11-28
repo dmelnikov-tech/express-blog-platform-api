@@ -14,6 +14,7 @@ import { COLLECTIONS } from '../collections.js';
 const getCollection = () => getDatabase().collection<PostLikeDocument>(COLLECTIONS.POST_LIKES);
 
 export const postLikesRepository = {
+  // Аналогичный метод есть для комментариев в comment-likes.repository. Там есть описание работы с агрегацией.
   async getLikesAggregation(postsIds: string[]): Promise<LikesAggregation | {}> {
     if (!postsIds.length) {
       return {};
@@ -104,14 +105,17 @@ export const postLikesRepository = {
 
     const docs = await collection
       .aggregate([
+        // Берём только лайки к указанным постам (Dislike и None не нужны)
         { $match: { postId: { $in: postIds }, likeStatus: 'Like' } },
         {
           $group: {
             _id: '$postId',
+            // $topN — оператор MongoDB, который выбирает N элементов по переданному критерию сортировки.
             likes: {
               $topN: {
                 n: 3,
                 sortBy: { createdAt: -1 },
+                // Нужны только userId и addedAt (createdAt) для дальнейшего вывода
                 output: {
                   userId: '$userId',
                   addedAt: '$createdAt',
@@ -123,13 +127,7 @@ export const postLikesRepository = {
       ])
       .toArray();
 
-    const result: NewestLikesAggregation = {};
-
-    for (const doc of docs) {
-      result[doc._id] = doc.likes;
-    }
-
-    return result;
+    return Object.fromEntries(docs.map(d => [d._id, d.likes])) as NewestLikesAggregation;
   },
 
   async deleteAll(): Promise<boolean> {
